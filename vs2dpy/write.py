@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 
-def write_dat(prec, evapt, scf, H, x, z, timestep='hour', folder=''):
+def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder=''):
     n = prec - evapt
     pet = np.abs(n[n <= 0]).values
     e = pet * scf

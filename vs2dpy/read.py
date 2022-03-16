@@ -5,7 +5,7 @@ import numpy as np
 from pandas import read_csv, DataFrame
 
 
-def read_variables_out(path='', to_pickle=False):
+def variables_out(path='', to_pickle=False):
     """_summary_
 
     Parameters
@@ -38,7 +38,7 @@ def read_variables_out(path='', to_pickle=False):
     return h
 
 
-def read_balance_out(path=''):
+def balance_out(path=''):
     """_summary_
 
     Parameters
@@ -63,7 +63,7 @@ def read_balance_out(path=''):
     return df
 
 
-def read_vs2drt_out(path=''):
+def outfile(path=''):
     num_lines = sum(1 for line in open(f'{path}vs2drt.out'))
 
     with open(f'{path}vs2drt.out') as f:
@@ -157,16 +157,16 @@ def get_gwt_1D(pressure_head, depth):
     return gwl
 
 
-def get_gwt(data, z):
+def get_gwt_2D(data, z):
     gwt = np.array([])
     for i in range(data.shape[1]):
         gwt = np.append(gwt, get_gwt_1D(np.flip(data[:, i]), z))
     return gwt
 
-def get_gwt_multi(h, x, z, to_csv=False):
+def get_gwt_intime(h, x, z, to_csv=False):
     gwt_d = {}
     for ky in h:
-        gwt_d[ky] = get_gwt(data=h[ky], z=z)
+        gwt_d[ky] = get_gwt_2D(data=h[ky], z=z)
 
     gwl = DataFrame(gwt_d, index=x).transpose()
 
