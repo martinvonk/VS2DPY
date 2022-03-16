@@ -64,6 +64,18 @@ def balance_out(path=''):
 
 
 def outfile(path=''):
+    """_summary_
+
+    Parameters
+    ----------
+    path : str, optional
+        _description_, by default ''
+
+    Returns
+    -------
+    _type_
+        _description_
+    """    
     num_lines = sum(1 for line in open(f'{path}vs2drt.out'))
 
     with open(f'{path}vs2drt.out') as f:
@@ -143,6 +155,20 @@ def outfile(path=''):
 
 
 def get_gwt_1D(pressure_head, depth):
+    """_summary_
+
+    Parameters
+    ----------
+    pressure_head : _type_
+        _description_
+    depth : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """    
     sign = np.signbit(pressure_head)
     if sign.any() == False:
         gwl = depth[0]
@@ -158,6 +184,20 @@ def get_gwt_1D(pressure_head, depth):
 
 
 def get_gwt_2D(data, z):
+    """_summary_
+
+    Parameters
+    ----------
+    data : _type_
+        _description_
+    z : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """    
     gwt = np.array([])
     for i in range(data.shape[1]):
         gwt = np.append(gwt, get_gwt_1D(np.flip(data[:, i]), z))
@@ -165,6 +205,24 @@ def get_gwt_2D(data, z):
 
 
 def get_gwt_intime(h, x, z, to_csv=False):
+    """_summary_
+
+    Parameters
+    ----------
+    h : _type_
+        _description_
+    x : _type_
+        _description_
+    z : _type_
+        _description_
+    to_csv : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """    
     gwt_d = {}
     for ky in h:
         gwt_d[ky] = get_gwt_2D(data=h[ky], z=z)
@@ -175,10 +233,3 @@ def get_gwt_intime(h, x, z, to_csv=False):
         gwl.to_csv('groundwaterlevel.csv')
     
     return gwl
-
-
-if __name__ == '__main__':
-    x, z, d = read_vs2drt_out(path = '../own/test08/')
-
-
-# %%
