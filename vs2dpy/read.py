@@ -163,6 +163,7 @@ def get_gwt_2D(data, z):
         gwt = np.append(gwt, get_gwt_1D(np.flip(data[:, i]), z))
     return gwt
 
+
 def get_gwt_intime(h, x, z, to_csv=False):
     gwt_d = {}
     for ky in h:

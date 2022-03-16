@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 
-def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder=''):
+def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha=-10000.0, rd=2.0, rabase=0.005, ratop=0.005, hroot=-150):
     n = prec - evapt
     pet = np.abs(n[n <= 0]).values
     e = pet * scf
@@ -10,13 +10,13 @@ def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder=''):
     NPV = (n <= 0).sum()
     if NPV > 0:
         BCIT = 'T'
-        SRES = np.full(NPV, 0.02)
-        HA = np.full(NPV, -10000.0)
+        SRES = np.full(NPV, sres)
+        HA = np.full(NPV, ha)
         ETSIM = 'T'
-        RD = np.full(NPV, 2.0)
-        RAbase = np.full(NPV, 0.005)
-        RAtop = np.full(NPV, 0.005)
-        Hroot = np.full(NPV, -150)
+        RD = np.full(NPV, rd)
+        RAbase = np.full(NPV, rabase)
+        RAtop = np.full(NPV, ratop)
+        Hroot = np.full(NPV, hroot)
     else:
         BCIT = 'F'
         ETSIM = 'F'
