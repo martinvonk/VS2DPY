@@ -1,2 +1,7 @@
 
 *.ini
+vs2dpy.egg-info/dependency_links.txt
+vs2dpy.egg-info/PKG-INFO
+vs2dpy.egg-info/SOURCES.txt
+vs2dpy.egg-info/top_level.txt
+*.pyc
