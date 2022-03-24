@@ -3,40 +3,161 @@ import re
 import pickle
 import numpy as np
 from pandas import read_csv, DataFrame
+from tqdm import tqdm
 
-
-def variables_out(path='', to_pickle=False):
+def variables_out(path='', tmax=None, msize=10000, to_file=False):
     """_summary_
 
     Parameters
     ----------
     path : str, optional
-        path to variables.out file, by default ''
+        _description_, by default ''
+    tmax : _type_, optional
+        _description_, by default None
+    to_pickle : bool, optional
+        _description_, by default False
 
     Returns
     -------
-    h: dict
-        Dictionary of variables.out with timesteps as keys
+    _type_
+        _description_
     """
+    
     with open(f'{path}variables.out') as f:
-        fo = f.read().splitlines()
-
-    t_idx = [i for i, s in enumerate(fo) if ' TIME =    ' in s]
-    tsteps = [float(fo[t_idx[i]].split()[-2]) for i in range(len(t_idx))]
-
-    h = {}
-    delt = t_idx[1] - t_idx[0]
-    for i, t in enumerate(tsteps):
+        pbar = tqdm(desc='Timestep', total=int(tmax))
+        tsps = []
+        t1 = []
+        line = ''
+        while 'TIME' not in line:
+            line = f.readline()
+        tsps.append(float(line.split()[-2]))
+        line = f.readline()
+        while 'TIME' not in line:
+            line = f.readline()
+            t1.append(line)
         dat = np.array([dr.split() for dr
-                        in fo[t_idx[i]+2:t_idx[i]+delt-1]], dtype=float)
-        h[t] = dat[1:-1, 1:-1]
+                            in  t1[:-2]], dtype=float)
+        aap = np.zeros((msize * dat.shape[0], dat.shape[1]))
+        aap[:dat.shape[0], :] = dat
+        cnt = dat.shape[0]
 
-    if pickle:
-        with open('ph.pickle', 'wb') as handle:
-            pickle.dump(h, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        tsps.append(float(line.split()[-2]))
+        pbar.update(2)
 
-    return h
+    return tsps
 
+def variables_out2(path='', tmax=None, msize=10000, to_file=False):
+
+    with open(f'{path}variables.out') as f:
+        pbar = tqdm(desc='Timestep', total=int(tmax))
+        tsps = []
+        t1 = []
+        line = ''
+        while 'TIME' not in line:
+            line = f.readline()
+        tsps.append(float(line.split()[-2]))
+        line = f.readline()
+        while 'TIME' not in line:
+            line = f.readline()
+            t1.append(line)
+        dat = np.array([dr.split() for dr
+                            in  t1[:-2]], dtype=float)
+        aap = np.zeros((msize * dat.shape[0], dat.shape[1]))
+        aap[:dat.shape[0], :] = dat
+        cnt = dat.shape[0]
+
+        tsps.append(float(line.split()[-2]))
+        pbar.update(2)
+
+        for line in f:
+            lsp = line.split()
+
+            if 'TIME' in lsp:
+                tsps.append(float(lsp[-2]))
+                pbar.update(1)
+            elif len(lsp) == dat.shape[1]:
+                l = np.array(lsp, dtype=float)
+                aap[cnt, :] = l
+                cnt += 1
+
+            if cnt == msize * dat.shape[0]:
+                if to_file:
+                    with open(f'ph1_{int(tsps[-1])}.npy', 'wb') as fo:
+                        np.save(fo, aap)
+                del(aap)
+                aap = np.zeros((msize * dat.shape[0], dat.shape[1]))
+                cnt = 0
+
+    if to_file:
+        with open(f'ph_{int(tsps[-1])}.npy', 'wb') as fo:
+            np.save(fo, aap)
+
+    return tsps
+
+    # with open(f'{path}variables.out') as f:
+    #     pbar = tqdm(desc='Timestep', total=int(tmax))
+    #     line = ''
+    #     tsps = []
+    #     while 'TIME' not in line:
+    #         line = f.readline()
+    #     tsps.append(float(line.split()[-2]))
+    #     # prepare to read output t
+    #     cnt = 0
+    #     aap = []
+    #     while line:
+    #         while tsps[-1] < tmax+1:
+    #             t = []
+    #             line = f.readline()
+    #             while 'TIME' not in line:
+    #                 line = f.readline()
+    #                 t.append(line)
+    #             dat = np.array([dr.split() for dr
+    #                             in  t[0:-2]], dtype=float)[1:-1, 1:-1]
+    #             if tsps[-1] in np.arange(1.0, tmax, 10000):
+    #                 cnt = 0
+    #                 if to_file:
+    #                     with open(f'ph_{int(tsps[-1])}.npy', 'wb') as fo:
+    #                         np.save(fo, aap)
+    #                 aap = np.zeros((10000, dat.shape[0], dat.shape[1]))
+    #             aap[cnt] = dat
+    #             tsps.append(float(line.split()[-2]))
+    #             pbar.update(1)
+    #             cnt += 1
+    #             if tsps[-1] == tmax:
+    #                 it = len(t)
+    #                 t = []
+    #                 line = f.readline()
+    #                 for _ in range(it):
+    #                     line = f.readline()
+    #                     t.append(line)
+    #                 dat = np.array([dr.split() for dr
+    #                             in  t[0:-2]], dtype=float)[1:-1, 1:-1]
+    #                 aap[cnt] = dat
+    #                 pbar.update(1)
+    #                 if to_file:
+    #                     with open(f'ph{int(tsps[-1])}.npy', 'wb') as fo:
+    #                         np.save(fo, aap)
+    #                 break
+
+    #     return aap
+
+    # # with open(f'{path}variables.out') as f:
+    #     fo = f.read().splitlines()
+
+
+    # t_idx = [i for i, s in enumerate(fo) if ' TIME =    ' in s]
+    # tsteps = [float(fo[t_idx[i]].split()[-2]) for i in range(len(t_idx))]
+
+    # h = {}
+    # delt = t_idx[1] - t_idx[0]
+    # for i, t in enumerate(tsteps):
+    #     dat = np.array([dr.split() for dr
+    #                     in fo[t_idx[i]+2:t_idx[i]+delt-1]], dtype=float)
+    #     h[t] = dat[1:-1, 1:-1]
+
+    # if to_pickle:
+    #     with open('ph.pickle', 'wb') as handle:
+    #         pickle.dump(h, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 def balance_out(path=''):
     """_summary_
@@ -77,7 +198,7 @@ def outfile(path=''):
         _description_
     """    
     num_lines = sum(1 for line in open(f'{path}vs2drt.out'))
-
+    print(f'{num_lines=}')
     with open(f'{path}vs2drt.out') as f:
         [f.readline() for _ in range(17)]
         # SPACE AND TIME CONSTANTS
@@ -125,7 +246,7 @@ def outfile(path=''):
         # REST
         time = np.array([], dtype=float)
         timestep = np.array([], dtype=int)
-        for i in range(num_lines):
+        for i in tqdm(range(num_lines)):
             line = f.readline()
             if 'TOTAL ELAPSED TIME' in line:
                 time = np.append(time, float(line.split()[-2]))
@@ -233,3 +354,67 @@ def get_gwt_intime(h, x, z, to_csv=False):
         gwl.to_csv('groundwaterlevel.csv')
     
     return gwl
+
+    
+# %%
+# old variables out function using dictionary and pickle
+# def variables_out(path='', tmax=None, to_pickle=False):
+#     """_summary_
+
+#     Parameters
+#     ----------
+#     path : str, optional
+#         _description_, by default ''
+#     tmax : _type_, optional
+#         _description_, by default None
+#     to_pickle : bool, optional
+#         _description_, by default False
+
+#     Returns
+#     -------
+#     _type_
+#         _description_
+#     """
+    
+#     with open(f'{path}variables.out') as f:
+#         pbar = tqdm(desc='Timestep', total=tmax)
+#         line = ''
+#         tsps = []
+#         h = {}
+#         while 'TIME' not in line:
+#             line = f.readline()
+#         tsps.append(float(line.split()[-2]))
+#         # prepare to read output t
+#         while tsps[-1] < tmax+1:
+#             if tsps[-1] in np.arange(8760.0, tmax, 8760.0):
+#                 if to_pickle:
+#                     with open(f'ph_{tsps[-1]}.pickle', 'wb') as handle:
+#                         pickle.dump(h, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#                 h = {}
+#             t = []
+#             line = f.readline()
+#             while 'TIME' not in line:
+#                 line = f.readline()
+#                 t.append(line)
+#             dat = np.array([dr.split() for dr
+#                             in  t[0:-2]], dtype=float)
+#             h[tsps[-1]] = dat[1:-1, 1:-1]
+#             tsps.append(float(line.split()[-2]))
+#             pbar.update(1)
+#             if tsps[-1] == tmax:
+#                 it = len(t)
+#                 t = []
+#                 line = f.readline()
+#                 for _ in range(it):
+#                     line = f.readline()
+#                     t.append(line)
+#                 dat = np.array([dr.split() for dr
+#                             in  t[0:-2]], dtype=float)
+#                 h[tsps[-1]] = dat[1:-1, 1:-1]
+#                 pbar.update(1)
+#                 if to_pickle:
+#                     with open(f'ph_{tsps[-1]}.pickle', 'wb') as handle:
+#                         pickle.dump(h, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#                 break
+
+#     return h
