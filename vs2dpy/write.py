@@ -3,20 +3,21 @@ import numpy as np
 
 def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha=-10000.0, rd=2.0, rabase=0.005, ratop=0.005, hroot=-150):
     n = prec - evapt
-    pet = np.abs(n[n <= 0]).values
-    e = pet * scf
-    t = pet * (1 - scf)
+    pet = n.copy().values
+    pet[pet >= 0] = 0
+    e = np.abs(pet * (1 - scf)).round(10)
+    t = np.abs(pet * scf).round(10)
     nrech = len(n)
     NPV = (n <= 0).sum()
     if NPV > 0:
         BCIT = 'T'
-        SRES = np.full(NPV, sres)
-        HA = np.full(NPV, ha)
+        SRES = np.full(len(e), sres)
+        HA = np.full(len(e), ha)
         ETSIM = 'T'
-        RD = np.full(NPV, rd)
-        RAbase = np.full(NPV, rabase)
-        RAtop = np.full(NPV, ratop)
-        Hroot = np.full(NPV, hroot)
+        RD = np.full(len(t), rd)
+        RAbase = np.full(len(t), rabase)
+        RAtop = np.full(len(t), ratop)
+        Hroot = np.full(len(t), hroot)
     else:
         BCIT = 'F'
         ETSIM = 'F'
@@ -25,7 +26,7 @@ def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha
          f'{len(n)} 0. 0.            /A-2 -- TMAX, STIM, ANG\n',
          f'm   {timestep} g   J          /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n',
          f'{len(x)+1} {len(z)+1}                 /A-4 -- NXR, NLY\n',
-         f'{nrech} -10000000           /A-5 -- NRECH, NUMT\n',
+         f'{nrech} -100000000          /A-5 -- NRECH, NUMT\n',
          'F F F F                /A-6 -- RAD, ITSTOP, HEAT, SOLUTE\n',
          'F F T T F              /A-12 -- F11P, F7P, F8P, F9P, F6P\n',
          'F F T F T              /A-13 -- THPT, SPNT, PPNT, HPNT, VPNT\n',
@@ -77,13 +78,13 @@ def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha
             r = 0.0
             eb = 5
             if r == 0.0:
-                delt = 1
+                delt = 1.0
             else:
                 delt = 0.01
         seep_cells = (np.where(z <= np.abs(H))[0] + 1)[1:]
         head_cells = (np.where(z > np.abs(-2))[0] + 1)
         c = [f'1.0 {delt}             /C-1 -- TPER, DELT (Recharge Period {i})\n',
-            '1.5 0.5 1.0E-4 0.01    /C-2 -- TMLT, DLTMX, DLTMIN, TRED\n',
+            '1.5 1.0 1.0E-4 0.01    /C-2 -- TMLT, DLTMX, DLTMIN, TRED\n',
             '1000.0 0.0             /C-3 -- DSMAX, STERR\n',
             '0.0                    /C-4 -- POND\n',
             'F                      /C-5 -- PRNT\n',
