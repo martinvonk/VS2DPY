@@ -5,7 +5,7 @@ import numpy as np
 from pandas import read_csv, DataFrame
 from tqdm import tqdm
 
-def variables_out(path='', tmax=None, msize=10000, to_file=False):
+def variables_out(path='', tmax=None, byte_corr = 105):
     """_summary_
 
     Parameters
@@ -26,27 +26,33 @@ def variables_out(path='', tmax=None, msize=10000, to_file=False):
     with open(f'{path}variables.out') as f:
         pbar = tqdm(desc='Timestep', total=int(tmax))
         tsps = []
-        t1 = []
+        bl = []
         line = ''
         while 'TIME' not in line:
             line = f.readline()
-        tsps.append(float(line.split()[-2]))
+            bl.append(len(line)+1)
         line = f.readline()
+        bl.append(len(line)+1)
         while 'TIME' not in line:
             line = f.readline()
-            t1.append(line)
-        dat = np.array([dr.split() for dr
-                            in  t1[:-2]], dtype=float)
-        aap = np.zeros((msize * dat.shape[0], dat.shape[1]))
-        aap[:dat.shape[0], :] = dat
-        cnt = dat.shape[0]
+            bl.append(len(line)+1)
+        bts = np.sum(bl[:-2]) - byte_corr
+        f.seek(0,0)
+        chunk = [1]
+        while len(chunk) > 0:
+            chunk = f.read(bts)
+            if len(chunk) == 0:
+                break
+            l = chunk.splitlines()
+            tsps.append(float(l[1].split()[-2]))
+            # print(l[-1])
+            aap = np.array([dr.split() for dr in l[3:]], dtype=float)
+            with open(f'ph1/ph_{tsps[-1]}.npy', 'wb') as fo:
+                np.save(fo, aap)
+            pbar.update(1)
+                
 
-        tsps.append(float(line.split()[-2]))
-        pbar.update(2)
-
-    return tsps
-
-def variables_out2(path='', tmax=None, msize=10000, to_file=False):
+def variables_out2(path='', tmax=None, msize=5000, to_file=False):
 
     with open(f'{path}variables.out') as f:
         pbar = tqdm(desc='Timestep', total=int(tmax))
@@ -84,12 +90,11 @@ def variables_out2(path='', tmax=None, msize=10000, to_file=False):
                 if to_file:
                     with open(f'ph1_{int(tsps[-1])}.npy', 'wb') as fo:
                         np.save(fo, aap)
-                del(aap)
                 aap = np.zeros((msize * dat.shape[0], dat.shape[1]))
                 cnt = 0
 
     if to_file:
-        with open(f'ph_{int(tsps[-1])}.npy', 'wb') as fo:
+        with open(f'ph1_{int(tsps[-1])}.npy', 'wb') as fo:
             np.save(fo, aap)
 
     return tsps
