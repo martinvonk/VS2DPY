@@ -73,6 +73,8 @@ def vs2d_animation(fold='', name='vid', n=None, x=None, z=None,
 
     fig.tight_layout()
 
+    bar = tqdm(total=len(ts))
+
     def animate(i):
 
         vl.set_xdata(ts[i])
@@ -88,6 +90,7 @@ def vs2d_animation(fold='', name='vid', n=None, x=None, z=None,
 
         vl_gw.set_xdata(ts[i])
 
-    bar = tqdm(total=len(ts))
+        bar.update(1)
+
     anim = animation.FuncAnimation(fig, animate, frames=len(ts))  # len(ind)
     anim.save(f'{fold}{name}.mp4', fps=fps, dpi=150)
