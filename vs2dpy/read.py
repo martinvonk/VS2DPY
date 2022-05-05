@@ -45,9 +45,9 @@ def variables_out(path='', tmax=None, byte_corr = 105):
                 break
             l = chunk.splitlines()
             tsps.append(float(l[1].split()[-2]))
-            # print(l[-1])
+            # print(l)
             aap = np.array([dr.split() for dr in l[3:]], dtype=float)
-            with open(f'ph1/ph_{tsps[-1]}.npy', 'wb') as fo:
+            with open(f'{path}ph/ph_{tsps[-1]}.npy', 'wb') as fo:
                 np.save(fo, aap)
             pbar.update(1)
                 
