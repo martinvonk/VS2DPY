@@ -99,7 +99,7 @@ def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', soilpar='1.0 
             f'-999999                /C-19 -- End of data for recharge period {i}\n']
         a.extend(c)
     a.extend('-999999 /End of input data file')
-    with open(f'{folder}vs2drt.dat', 'w') as f:
+    with open(f'{folder}/vs2drt.dat', 'w') as f:
         for item in a:
             f.write(item)
 
