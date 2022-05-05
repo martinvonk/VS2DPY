@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 
-def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha=-10000.0, rd=1.0, rabase=0.005, ratop=0.005, hroot=-150):
+def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', soilpar='1.0 0.7 1.0E-4 0.496 0.847 0.15 4.8', sres=0.02, ha=-10000.0, rd=1.0, rabase=0.005, ratop=0.005, hroot=-150):
     n = prec - evapt
     pet = n.copy().values
     pet[pet >= 0] = 0
@@ -46,7 +46,7 @@ def datfile(prec, evapt, scf, H, x, z, timestep='hour', folder='', sres=0.02, ha
          '1                      /B-8 -- ITEX. B-9 to begin next line: HK\n',
          '1.0 0.0 0.0 0.0 0.0 0.0 0.0\n',
          '2                      /B-8 -- ITEX. B-9 to begin next line: HK\n',
-         '1.0 0.7 1.0E-4 0.496 0.847 0.15 4.8 \n',
+         f'{soilpar} \n',
          '0                      /B-12 -- IROW. B-13 begins next line: JTEX\n']
     b_2 = [(''+' '.join(str(i) for i in line) + ' \n') for line in jtex[:-2, :]]
     b_2.extend(''+' '.join(str(i) for i in jtex[-1, :]) + ' /End B-13\n')
