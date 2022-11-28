@@ -61,6 +61,7 @@ class Model:
         self.idbf = None  # B-34
         self.numcells = None  # B-34
         self.bcrowncoln = None  # B-35
+        self.prnt = None  # C-5
 
         # define_domain
         self.nxr = None  # A-4
@@ -74,6 +75,13 @@ class Model:
         self.wus = None  # B-1
         self.minit = None  # B-4
         self.itmax = None  # B-4
+        self.delt = None  # C-1
+        self.tmlt = None  # C-2
+        self.dltmx = None  # C-2
+        self.dltmin = None  # C-2
+        self.tred = None  # C-2
+        self.dsmax = None  # C-3
+        self.sterr = None  # C-3
 
         # define_soil
         self.ntex = None  # B-6
@@ -90,20 +98,22 @@ class Model:
         self.hmin = None  # B-16
 
         # define_evap
-        self.bcit = None
-        self.etsim = None
-        self.npv = None
-        self.etcyc = None
-        self.peval = None
-        self.rdc1 = None
-        self.rdc2 = None
-        self.ptval = None
-        self.rdc3 = None
-        self.rdc4 = None
-        self.rdc5 = None
-        self.rdc6 = None
+        self.bcit = None  # B-18
+        self.etsim = None  # B-18
+        self.npv = None  # B-19
+        self.etcyc = None  # B-19
+        self.peval = None  # B-20
+        self.rdc1 = None  # B-21
+        self.rdc2 = None  # B-22
+        self.ptval = None  # B-23
+        self.rdc3 = None  # B-24
+        self.rdc4 = None  # B-25
+        self.rdc5 = None  # B-26
+        self.rdc6 = None  # B-27
 
-        # define_boundaryc
+        # define_rp
+        self.tper = None
+        self.bc = None
 
     def define_output(
         self,
@@ -130,6 +140,7 @@ class Model:
         idbf: int = 0,
         numcells: int = 0,
         bcrowncoln: list[tuple] = None,
+        prnt: bool = False,
     ):
 
         self.nrech = nrech  # A-5
@@ -174,6 +185,8 @@ class Model:
                 raise ValueError("Number of entries must be equal to NUMCELLS")
             self.bcrowncoln = bcrowncoln  # B-35
 
+        self.prnt = prnt  #  C-5
+
     def define_domain(
         self,
         nxr: int = 1,
@@ -203,6 +216,13 @@ class Model:
         wus: float = 0.5,
         minit: int = 2,
         itmax: int = 10,
+        delt: float = 0.1,
+        tmlt: float = 1.5,
+        dltmx: float = 1.0,
+        dltmin: float = 0.0001,
+        tred: float = 0.01,
+        dsmax: float = 100,
+        sterr: float = 0.0,
     ):
         self.eps = eps  # B-1
         if 1.2 <= hmax <= 0.4:
@@ -211,6 +231,13 @@ class Model:
         self.wus = wus  # B-1
         self.minit = minit  # B-4
         self.itmax = itmax  # B-4
+        self.delt = delt  # C-1
+        self.tmlt = tmlt  # C-2
+        self.dltmx = dltmx  # C-2
+        self.dltmin = dltmin  # C-2
+        self.tred = tred  # C-2
+        self.dsmax = dsmax  # C-3
+        self.sterr = sterr  # C-3
 
     def define_soil(
         self,
@@ -235,7 +262,8 @@ class Model:
 
         # IROW = 0 # B-12
         if jtex is None:
-            self.jtex = np.zeros((10, 1), dtype=int)
+            self.jtex = np.ones((10, 1), dtype=int)
+            self.jtex = np.pad(self.jtex, pad_width=1, mode="constant")
         else:
             if jtex.ndim != 2:
                 raise ValueError("JTEX must be 2-dimensional")
@@ -284,34 +312,88 @@ class Model:
         rdc5: np.ndarray = None,  # RAtop
         rdc6: np.ndarray = None,  # Hroot
     ):
-        self.bcit = bcit
-        self.etsim = etsim
+        self.bcit = bcit  # B-18
+        self.etsim = etsim  # B-18
         if bcit or etsim:
-            self.npv = npv
-            self.etcyc = etcyc
+            self.npv = npv  # B-19
+            self.etcyc = etcyc  # B-19
         if bcit:
             for name, x in zip((peval, rdc1, rdc2), ("peval", "rdc1", "rdc2")):
                 if len(x) != self.npv:
                     raise ValueError(f"Number of entries of {name} must equal NPV")
-            self.peval = peval
-            self.rdc1 = rdc1
-            self.rdc2 = rdc2
+            self.peval = peval  # B-20
+            self.rdc1 = rdc1  # B-21
+            self.rdc2 = rdc2  # B-22
         if etsim:
             for name, x in zip(
                 (ptval, rdc3, rdc4, rdc5, rdc6), ("peval", "rdc1", "rdc2")
             ):
                 if len(x) != self.npv:
                     raise ValueError(f"Number of entries of {name} must equal NPV")
-            self.ptval = ptval
-            self.rdc3 = rdc3
-            self.rdc4 = rdc4
-            self.rdc5 = rdc5
-            self.rdc6 = rdc6
+            self.ptval = ptval  # B-23
+            self.rdc3 = rdc3  # B-24
+            self.rdc4 = rdc4  # B-25
+            self.rdc5 = rdc5  # B-26
+            self.rdc6 = rdc6  # B-27
+
+    def get_bc(
+        self,
+        bcitrp: bool = False,
+        etsimrp: bool = False,
+        seep: bool = False,
+        pond: float = 0.0,
+        nfcs: int = 1,
+        jj: int = 1,
+        jlast: int = 0,
+        jspx: list[tuple] = None,
+        ibc: int = 0,
+        ntx: np.ndarray = None,
+    ):
+        bc = {}
+        bc["pond"] = pond  # C-4
+        bc["bcitrp"] = bcitrp  # C-6
+        bc["etsimrp"] = etsimrp  # C-6
+        bc["seep"] = seep  # C-6
+        if seep:
+            bc["nfcs"] = nfcs  # C-6
+            bc["jj"] = jj  # C-6
+            bc["jlast"] = jlast  # C-6
+            if len(jspx) != jj:
+                raise ValueError(f"Number of entries of JSPX must be equal to JJ")
+            bc["jspx"] = jspx
+        bc["ibc"] = ibc  # C-10
+        if ibc == 0:
+            if ntx is None:
+                bc["ntx"] = np.array(
+                    [
+                        [1, 1, 2, 0.1],
+                        [self.jtex.shape[0] - 2, self.jtex.shape[1] - 2, 7, 0.0],
+                    ]
+                )
+            else:
+                bc["ntx"] = ntx  # C-11
+        return bc
+
+    def define_rp(
+        self,
+        tper: np.ndarray = np.array([1.0]),
+        bc: dict[dict] = None,
+    ):
+        self.tper = tper  # C-1
+        if len(tper) != len(bc):
+            raise ValueError(
+                f"Number of entries of TPER must be equal to boundary conditions"
+            )
+        if bc is None:
+            self.bc = self.get_bc()
+        else:
+            self.bc = bc
 
     def write_input(self):
         A = self.write_A()
         B = self.write_B()
-        ABC = list(A.values()) + list(B.values())
+        C = self.write_C()
+        ABC = list(A.values()) + list(B.values()) + list(C.values())
 
         return ABC
 
@@ -389,6 +471,47 @@ class Model:
             B["B35"] = f"{self.bcrowncoln} (ROW(N),COL(N),N=1,NUMCELLS)\n"
         return B
 
+    def write_C(self):
+        C = OrderedDict()
+        fs = f"0{str(list(self.bc.keys())[-1])}d"  # format specifier key
+        for ky, bc in self.bc.items():
+            C[
+                f"{ky:{fs}}_C01"
+            ] = f"1.0 {self.delt} /C-1 -- TPER, DELT (Recharge Period {ky})\n"
+            C[
+                f"{ky:{fs}}_C02"
+            ] = f"{self.tmlt} {self.dltmx} {self.dltmin} {self.tred} /C-2 -- TMLT, DLTMX, DLTMIN, TRED\n"
+            C[f"{ky:{fs}}_C03"] = f"{self.dsmax} {self.sterr} /C-3 -- DSMAX, STERR\n"
+            C[f"{ky:{fs}}_C04"] = f"{bc['pond']} /C-4 -- POND\n"
+            C[f"{ky:{fs}}_C05"] = f"{self.prnt} /C-5 -- PRNT\n"
+            C_05 = [
+                "T" if x else "F" for x in (bc["bcitrp"], bc["etsimrp"], bc["seep"])
+            ]
+            C[f"{ky:{fs}}_C06"] = f"{' '.join(C_05)} /C-6 -- BCIT, ETSIM, SEEP\n"
+            if bc["seep"]:
+                C[f"{ky:{fs}}_C07"] = f"{bc['nfcs']} /C-7 -- NFCS\n"
+                C[
+                    f"{ky:{fs}}_C08"
+                ] = f"{bc['jj']} {bc['jlast']}/C-8 --  JJ, JLAST. C-9 begins next line: J, N\n"
+                C[f"{ky:{fs}}_C09"] = ""
+                for i in range(bc["jj"]):
+                    C[f"{ky:{fs}}_C09"] += f"{bc['jtx'][i]} \n"
+            C[f"{ky:{fs}}_C10"] = f"{bc['ibc']} /C-10 -- IBC\n"
+            C[f"{ky:{fs}}_C11"] = ""
+            for jjnnntx in bc["ntx"]:
+                jj = int(jjnnntx[0] + 1)
+                nn = int(jjnnntx[1] + 1)
+                ntx = int(jjnnntx[2])
+                pfdum = float(jjnnntx[3])
+                C[
+                    f"{ky:{fs}}_C11"
+                ] += f"{jj} {nn} {ntx} {pfdum} /C-11 -- JJ, NN, NTX, PFDUM\n"
+            C[
+                f"{ky:{fs}}_C19"
+            ] = f"-999999 /C-19 -- End of data for recharge period {ky}\n"
+        C[f"{ky:{fs}}_C99"] = f"-999999 /End of input data file"
+        return C
+
 
 if __name__ == "__main__":
     # print(["T" if x else "F" for x in (True, True, False)])
@@ -398,5 +521,6 @@ if __name__ == "__main__":
     ml.define_soil()
     ml.define_initialc()
     ml.define_solver()
-    ABC = ml.write_input()
-ABC
+    bc = ml.get_bc()
+    ml.define_rp(bc={0: bc})
+    abc = ml.write_input()
