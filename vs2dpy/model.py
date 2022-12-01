@@ -1,3 +1,4 @@
+#%%
 import os
 import numpy as np
 import pandas as pd
@@ -529,8 +530,8 @@ class Model:
             else:
                 title = line.split("/")[0]
 
+            line = fo.readline()
             while line:
-                line = fo.readline()
                 ls = line.split("/")[0]
                 if "/A-2 " in line:
                     tmax, stim, ang = ls.split()
@@ -553,45 +554,74 @@ class Model:
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-14 " in line:
-                    ifac, facx = ls.split()
+                    vals = ls.split()
+                    ifac = int(vals[0])
+                    facx = int(vals[1])
                     if " A-15 " in line:
                         dxr = np.array([])
                         line = fo.readline()
-                        while "/A-17 " not in line:
-                            dxr = np.append(dxr, line.split())
+                        while ("/A-17 " not in line) and line:
+                            if "/End" in line:
+                                arr = np.array(line.split("/")[0].split())
+                            else:
+                                arr = np.array(line.split())
+                            dxr = np.append(dxr, arr)
                             line = fo.readline()
                         else:
-                            jfac, facx = line.split("/")[0].split()
-                            if " A-18 " in line:
-                                pltim = np.array([])
-                                line = fo.readline()
-                                while "/A-20 " not in line:
-                                    pltim = np.append(pltim, line.split())
-                                    line = fo.readline()
-                                else:
-                                    nplt = line.split()[0]
-                                    if " A-21 " in line:
-                                        pltm = np.array([])
-                                        line = fo.readline()
-                                        while "/A-24 " not in line:
-                                            pltm = np.append(pltm, line.split())
-                                        else:
-                                            continue
-
+                            dxr = dxr.astype(float)
+                            continue
+                elif "/A-17 " in line:
+                    vals = ls.split()
+                    jfacx = int(vals[0])
+                    facx = int(vals[1])
+                    if " A-18 " in line:
+                        delz = np.array([])
+                        line = fo.readline()
+                        while "/End A-18" not in line:
+                            arr = np.array(line.split())
+                            delz = np.append(delz, arr)
+                            line = fo.readline()
+                        else:
+                            arr = np.array(line.split("/")[0].split())
+                            delz = np.append(delz, arr).astype(float)
+                            line = fo.readline()
+                            continue
+                elif "/A-20 " in line:
+                    nplt = int(ls)
+                    if " A-21 " in line:
+                        pltim = np.array([])
+                        line = fo.readline()
+                        while "/A-24 " not in line:
+                            if "/End" in line:
+                                arr = np.array(line.split("/")[0].split())
+                            else:
+                                arr = np.array(line.split())
+                                pltim = np.append(pltim, arr)
+                            line = fo.readline()
+                        else:
+                            pltim = pltim.astype(float)
+                            continue
                 elif "/A-24 " in line:
-                    nmb9 = line.split("/")[0]
+                    nmb9 = int(ls)
                 elif "/A-25" in line:
-                    nmb9 = ls.split()
+                    mb9 = np.array(ls.split()).astype(int)
                 elif "/B-1 " in line:
-                    eps, hmax, wus = ls.split()
+                    vals = ls.split()
+                    eps = float(vals[0])
+                    hmax = float(vals[1])
+                    wus = float(vals[2])
                 elif "/B-4 " in line:
-                    minit, itmax = ls.split()
+                    vals = ls.split()
+                    minit = int(vals[0])
+                    itmax = int(vals[1])
                 elif "/B-5 " in line:
                     phrd = [True if x == "T" else False for x in ls]
                 elif "/B-6 " in line:
-                    ntex, nprop = ls.split()
+                    vals = ls.split()
+                    ntex = int(vals[0])
+                    nprop = int(vals[1])
                 elif "/B-7 " in line:
-                    hft = ls
+                    hft = int(ls)
                 elif "/B-8 " in line:
                     itex = int(ls)
                     if " B-9 " in line:
@@ -599,22 +629,34 @@ class Model:
                         hk = np.array(line.split()).astype(float)  # B-9
                         textures[itex] = hk
                 elif "/B-12 " in line:
-                    irow = ls
+                    irow = int(ls)
                     if " B-13" in line:
                         jtex = np.array([])
                         line = fo.readline()
-                        while "/B-15 " not in line:
-                            jtex = np.append(jtex, line.split(), axis=0)
+                        while "/End B-13" not in line:
+                            arr = np.array(line.split())
+                            jtex = np.append(jtex, arr, axis=0)
                             line = fo.readline()
                         else:
+                            arr = np.array(line.split("/")[0].split())
+                            jtex = np.append(jtex, arr, axis=0).astype(int)
+                            line = fo.readline()
                             continue
                 elif "/B-15 " in line:
-                    iread, factor = ls.split()
+                    vals = ls.split()
+                    iread = int(vals[0])
+                    factor = float(vals[1])
                 elif "/B-16 " in line:
-                    dwtx, hmin = ls.split()
-                elif "/B-17 " in line:
+                    vals = ls.split()
+                    dwtx = float(vals[0])
+                    hmin = float(vals[0])
+                elif "/B-18 " in line:
                     bcit, etsim = [True if x == "T" else False for x in ls.split()]
                 elif "/C-1 " in line:
+                    jj = []
+                    nn = []
+                    ntx = []
+                    pfdum = []
                     rp = int(line.split("(")[-1].split(")")[0].split()[-1])
                     bc[rp] = {}
                     bc[rp]["tper"] = ls.split()[0]
@@ -623,14 +665,14 @@ class Model:
                     while "-999999" not in line:
                         if "/C-2 " in line:
                             vals = line.split("/")[0].split()
-                            tmlt.append(vals[0])
-                            dltmx.append(vals[1])
-                            dltmin.append(vals[2])
-                            tred.append(vals[3])
+                            tmlt.append(float(vals[0]))
+                            dltmx.append(float(vals[1]))
+                            dltmin.append(float(vals[2]))
+                            tred.append(float(vals[3]))
                         elif "/C-3 " in line:
                             vals = line.split("/")[0].split()
-                            dsmax.append(vals[0])
-                            sterr.append(vals[1])
+                            dsmax.append(float(vals[0]))
+                            sterr.append(float(vals[1]))
                         elif "/C-4 " in line:
                             bc[rp]["pond"] = float(line.split("/")[0])
                         elif "/C-5 " in line:
@@ -648,14 +690,28 @@ class Model:
                             bc[rp]["jj"] = int(ls[0])
                             bc[rp]["jlast"] = int(ls[0])
                             if " C-9 " in line:
-                                print(line)
-                    else:
-                        continue
+                                jspx = []
+                                line = fo.readline()
+                                while " /C-10 " not in line:
+                                    j, n = line.split()
+                                    jspx.append((int(j), int(n)))
+                                    line = fo.readline()
+                                else:
+                                    continue
+                        elif "/C-10 " in line:
+                            ibc = int(line.split("/")[0])
+                        elif "/C-11 " in line:
+                            vals = line.split("/")[0].split()
+                            jj.append(int(vals[0]))
+                            nn.append(int(vals[1]))
+                            ntx.append(int(vals[2]))
+                            pfdum.append(float(vals[3]))
+                        line = fo.readline()
+                elif "-999999 /End" in line:
+                    print("Reached end of file")
                 else:
-                    # print(line)
-                    break
-
-        return nmb9
+                    print(f"{line} ignored")
+                line = fo.readline()
 
 
 #%%
@@ -670,5 +726,7 @@ if __name__ == "__main__":
     # bc = ml.get_bc()
     # ml.define_rp(bc={0: bc})
     # abc = ml.write_input()
-    l = ml.read()
-print(l)
+    l = ml.read(path="vs2drt1.dat")
+# print(l)
+
+# %%
