@@ -71,6 +71,7 @@ class Model:
         self.delz = None  # A-18
 
         # define_solver
+        self.itstop = None  # A-6
         self.eps = None  # B-1
         self.hmax = None  # B-1
         self.wus = None  # B-1
@@ -212,6 +213,7 @@ class Model:
 
     def define_solver(
         self,
+        itstop: bool = True,
         eps: float = 0.0001,
         hmax: float = 0.7,
         wus: float = 0.5,
@@ -225,6 +227,7 @@ class Model:
         dsmax: float = 100,
         sterr: float = 0.0,
     ):
+        self.itstop = itstop  # A-6
         self.eps = eps  # B-1
         if 1.2 <= hmax <= 0.4:
             print(f"Relaxation parameter outside of general range")
@@ -406,7 +409,8 @@ class Model:
         A["A03"] = f"{self.zunit} {self.tunit} g J /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n"
         A["A04"] = f"{self.nxr} {self.nly} /A-4 -- NXR, NLY\n"
         A["A05"] = f"{self.nrech} {self.numt} /A-5 -- NRECH, NUMT\n"
-        A["A06"] = f"F F F F /A-6 -- RAD, ITSTOP, HEAT, SOLUTE\n"
+        A_06 = ["F"] + ["T" if x else "F" for x in (self.itstop,)] + ["F", "F"]
+        A["A06"] = f"{' '.join(A_06)} /A-6 -- RAD, ITSTOP, HEAT, SOLUTE\n"
         A_12 = [
             "T" if x else "F"
             for x in (self.f11p, self.f7p, self.f8p, self.f9p, self.f6p)
@@ -417,7 +421,7 @@ class Model:
             for x in (self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt)
         ]
         A["A13"] = " ".join(A_13) + " /A-13 -- THPT, SPNT, PPNT, HPNT, IFAC\n"
-        A["A14"] = f"0 0 /A-14 -- IFAC, FACX. A-15 begins next line: DXR\n"
+        A["A14"] = f"0 1 /A-14 -- IFAC, FACX. A-15 begins next line: DXR\n"
         A["A15"] = f"{' '.join(self.dxr.astype(str))} \n"
         A["A17"] = f"0 1 /A-17 -- JFAC, FACZ. A-18 begins next line: DELZ\n"
         A["A18"] = f"{' '.join(self.delz.astype(str))} /End A-18\n"
@@ -553,21 +557,26 @@ class Model:
                     self.nrech = int(vals[0])
                     self.numt = int(vals[1])
                 elif "/A-6 " in line:
-                    self.rad, self.itstop, self.heat, self.solute = [
+                    _, self.itstop, _, _ = [
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-12" in line:
                     self.f11p, self.f7p, self.f8p, self.f9p, self.f6p = [
                         True if x == "T" else False for x in ls.split()
                     ]
+                    print(ls)
                 elif "/A-13" in line:
                     self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt = [
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-14 " in line:
                     vals = ls.split()
-                    self.ifac = int(vals[0])
-                    self.facx = int(vals[1])
+                    ifac = int(vals[0])
+                    facx = int(vals[1])
+                    if ifac != 0:
+                        raise NotImplementedError
+                    if facx != 1:
+                        raise NotImplementedError
                     if " A-15 " in line:
                         dxr = np.array([])
                         line = fo.readline()
@@ -583,8 +592,12 @@ class Model:
                             continue
                 elif "/A-17 " in line:
                     vals = ls.split()
-                    self.jfacx = int(vals[0])
-                    self.facx = int(vals[1])
+                    jfac = int(vals[0])
+                    facz = int(vals[1])
+                    if jfac != 0:
+                        raise NotImplementedError
+                    if facz != 1:
+                        raise NotImplementedError
                     if " A-18 " in line:
                         delz = np.array([])
                         line = fo.readline()
@@ -777,8 +790,8 @@ if __name__ == "__main__":
     # bc = ml.get_bc()
     # ml.define_rp(bc={0: bc})
     # abc = ml.write_input()
-    ml.read(path="vs2drt1.dat")
+    ml.read(path="vs2drt0.dat")
     abc = ml.write_input()
 # print(l)
-
+ml.nplt
 # %%
