@@ -390,13 +390,14 @@ class Model:
         else:
             self.bc = bc  # C-4 - C-11
 
-    def write_input(self):
+    def write_input(self, path="vs2drt.dat"):
         A = self.write_A()
         B = self.write_B()
         C = self.write_C()
         ABC = list(A.values()) + list(B.values()) + list(C.values())
-
-        return ABC
+        with open(path, "w") as fo:
+            fo.writelines(ABC)
+        # return ABC
 
     def write_A(self):
         A = OrderedDict()
@@ -484,11 +485,12 @@ class Model:
             ] = f"{self.tmlt} {self.dltmx} {self.dltmin} {self.tred} /C-2 -- TMLT, DLTMX, DLTMIN, TRED\n"
             C[f"{ky:{fs}}_C03"] = f"{self.dsmax} {self.sterr} /C-3 -- DSMAX, STERR\n"
             C[f"{ky:{fs}}_C04"] = f"{bc['pond']} /C-4 -- POND\n"
-            C[f"{ky:{fs}}_C05"] = f"{self.prnt} /C-5 -- PRNT\n"
-            C_05 = [
+            C_05 = ["T" if x else "F" for x in (self.prnt,)]
+            C[f"{ky:{fs}}_C05"] = f"{' '.join(C_05)} /C-5 -- PRNT\n"
+            C_06 = [
                 "T" if x else "F" for x in (bc["bcitrp"], bc["etsimrp"], bc["seep"])
             ]
-            C[f"{ky:{fs}}_C06"] = f"{' '.join(C_05)} /C-6 -- BCIT, ETSIM, SEEP\n"
+            C[f"{ky:{fs}}_C06"] = f"{' '.join(C_06)} /C-6 -- BCIT, ETSIM, SEEP\n"
             if bc["seep"]:
                 C[f"{ky:{fs}}_C07"] = f"{bc['nfcs']} /C-7 -- NFCS\n"
                 C[
@@ -496,7 +498,8 @@ class Model:
                 ] = f"{bc['jj']} {bc['jlast']}/C-8 --  JJ, JLAST. C-9 begins next line: J, N\n"
                 C[f"{ky:{fs}}_C09"] = ""
                 for i in range(bc["jj"]):
-                    C[f"{ky:{fs}}_C09"] += f"{bc['jtx'][i]} \n"
+                    vals = bc["jspx"][i]
+                    C[f"{ky:{fs}}_C09"] += f"{vals[0]} {vals[1]}\n"
             C[f"{ky:{fs}}_C10"] = f"{bc['ibc']} /C-10 -- IBC\n"
             C[f"{ky:{fs}}_C11"] = ""
             for jjnnntx in bc["ntx"]:
@@ -523,40 +526,48 @@ class Model:
         tred = []
         dsmax = []
         sterr = []
+        prnt = []
         with open(path, "r+") as fo:
             line = fo.readline()
             if line == "\n":
-                title = ""
+                self.title = ""
             else:
-                title = line.split("/")[0]
+                self.title = line.split("/")[0]
 
             line = fo.readline()
             while line:
                 ls = line.split("/")[0]
                 if "/A-2 " in line:
-                    tmax, stim, ang = ls.split()
+                    vals = ls.split()
+                    self.tmax = float(vals[0])
+                    self.stim = float(vals[1])
+                    _ = float(vals[2])  # ang
                 elif "/A-3 " in line:
-                    zunit, tunit, cunx, hunx = ls.split()
+                    self.zunit, self.tunit, self.cunx, self.hunx = ls.split()
                 elif "/A-4 " in line:
-                    nxr, nly = ls.split()
+                    vals = ls.split()
+                    self.nxr = int(vals[0])
+                    self.nly = int(vals[1])
                 elif "/A-5 " in line:
-                    nrech, numt = ls.split()
+                    vals = ls.split()
+                    self.nrech = int(vals[0])
+                    self.numt = int(vals[1])
                 elif "/A-6 " in line:
-                    rad, itstop, heat, solute = [
+                    self.rad, self.itstop, self.heat, self.solute = [
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-12" in line:
-                    f11p, f7p, f8p, f9p, f6p = [
+                    self.f11p, self.f7p, self.f8p, self.f9p, self.f6p = [
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-13" in line:
-                    thpt, spnt, ppnt, hpnt, vpnt = [
+                    self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt = [
                         True if x == "T" else False for x in ls.split()
                     ]
                 elif "/A-14 " in line:
                     vals = ls.split()
-                    ifac = int(vals[0])
-                    facx = int(vals[1])
+                    self.ifac = int(vals[0])
+                    self.facx = int(vals[1])
                     if " A-15 " in line:
                         dxr = np.array([])
                         line = fo.readline()
@@ -568,12 +579,12 @@ class Model:
                             dxr = np.append(dxr, arr)
                             line = fo.readline()
                         else:
-                            dxr = dxr.astype(float)
+                            self.dxr = dxr.astype(float)
                             continue
                 elif "/A-17 " in line:
                     vals = ls.split()
-                    jfacx = int(vals[0])
-                    facx = int(vals[1])
+                    self.jfacx = int(vals[0])
+                    self.facx = int(vals[1])
                     if " A-18 " in line:
                         delz = np.array([])
                         line = fo.readline()
@@ -583,11 +594,11 @@ class Model:
                             line = fo.readline()
                         else:
                             arr = np.array(line.split("/")[0].split())
-                            delz = np.append(delz, arr).astype(float)
+                            self.delz = np.append(delz, arr).astype(float)
                             line = fo.readline()
                             continue
                 elif "/A-20 " in line:
-                    nplt = int(ls)
+                    self.nplt = int(ls)
                     if " A-21 " in line:
                         pltim = np.array([])
                         line = fo.readline()
@@ -599,29 +610,29 @@ class Model:
                                 pltim = np.append(pltim, arr)
                             line = fo.readline()
                         else:
-                            pltim = pltim.astype(float)
+                            self.pltim = pltim.astype(float)
                             continue
                 elif "/A-24 " in line:
-                    nmb9 = int(ls)
+                    self.nmb9 = int(ls)
                 elif "/A-25" in line:
-                    mb9 = np.array(ls.split()).astype(int)
+                    self.mb9 = np.array(ls.split()).astype(int)
                 elif "/B-1 " in line:
                     vals = ls.split()
-                    eps = float(vals[0])
-                    hmax = float(vals[1])
-                    wus = float(vals[2])
+                    self.eps = float(vals[0])
+                    self.hmax = float(vals[1])
+                    self.wus = float(vals[2])
                 elif "/B-4 " in line:
                     vals = ls.split()
-                    minit = int(vals[0])
-                    itmax = int(vals[1])
+                    self.minit = int(vals[0])
+                    self.itmax = int(vals[1])
                 elif "/B-5 " in line:
-                    phrd = [True if x == "T" else False for x in ls]
+                    self.phrd = [True if x == "T" else False for x in ls]
                 elif "/B-6 " in line:
                     vals = ls.split()
-                    ntex = int(vals[0])
-                    nprop = int(vals[1])
+                    self.ntex = int(vals[0])
+                    self.nprop = int(vals[1])
                 elif "/B-7 " in line:
-                    hft = int(ls)
+                    self.hft = int(ls)
                 elif "/B-8 " in line:
                     itex = int(ls)
                     if " B-9 " in line:
@@ -629,38 +640,40 @@ class Model:
                         hk = np.array(line.split()).astype(float)  # B-9
                         textures[itex] = hk
                 elif "/B-12 " in line:
-                    irow = int(ls)
+                    self.irow = int(ls)
                     if " B-13" in line:
-                        jtex = np.array([])
+                        jtex = None
                         line = fo.readline()
                         while "/End B-13" not in line:
-                            arr = np.array(line.split())
-                            jtex = np.append(jtex, arr, axis=0)
+                            arr = np.array([line.split()])
+                            if jtex is None:
+                                jtex = arr
+                            else:
+                                jtex = np.append(jtex, arr, axis=0)
                             line = fo.readline()
                         else:
-                            arr = np.array(line.split("/")[0].split())
-                            jtex = np.append(jtex, arr, axis=0).astype(int)
+                            arr = np.array([line.split("/")[0].split()])
+                            self.jtex = np.append(jtex, arr, axis=0).astype(int)
                             line = fo.readline()
                             continue
                 elif "/B-15 " in line:
                     vals = ls.split()
-                    iread = int(vals[0])
-                    factor = float(vals[1])
+                    self.iread = int(vals[0])
+                    self.factor = float(vals[1])
                 elif "/B-16 " in line:
                     vals = ls.split()
-                    dwtx = float(vals[0])
-                    hmin = float(vals[0])
+                    self.dwtx = float(vals[0])
+                    self.hmin = float(vals[1])
                 elif "/B-18 " in line:
-                    bcit, etsim = [True if x == "T" else False for x in ls.split()]
+                    self.bcit, self.etsim = [
+                        True if x == "T" else False for x in ls.split()
+                    ]
                 elif "/C-1 " in line:
-                    jj = []
-                    nn = []
-                    ntx = []
-                    pfdum = []
                     rp = int(line.split("(")[-1].split(")")[0].split()[-1])
                     bc[rp] = {}
+                    bc[rp]["ntx"] = []
                     bc[rp]["tper"] = ls.split()[0]
-                    delt.append(ls.split()[1])
+                    delt.append(float(ls.split()[1]))
                     line = fo.readline()
                     while "-999999" not in line:
                         if "/C-2 " in line:
@@ -677,7 +690,7 @@ class Model:
                             bc[rp]["pond"] = float(line.split("/")[0])
                         elif "/C-5 " in line:
                             ls = line.split("/")[0].split()
-                            bc[rp]["prnt"] = [True if x == "T" else False for x in ls]
+                            prnt.append([True if x == "T" else False for x in ls][0])
                         elif "/C-6 " in line:
                             ls = line.split("/")[0].split()
                             bc[rp]["bcitrp"], bc[rp]["etsimrp"], bc[rp]["seep"] = [
@@ -688,30 +701,68 @@ class Model:
                         elif "/C-8 " in line:
                             ls = line.split("/")[0].split()
                             bc[rp]["jj"] = int(ls[0])
-                            bc[rp]["jlast"] = int(ls[0])
+                            bc[rp]["jlast"] = int(ls[1])
                             if " C-9 " in line:
-                                jspx = []
+                                bc[rp]["jspx"] = []
                                 line = fo.readline()
                                 while " /C-10 " not in line:
                                     j, n = line.split()
-                                    jspx.append((int(j), int(n)))
+                                    bc[rp]["jspx"].append((int(j), int(n)))
                                     line = fo.readline()
                                 else:
                                     continue
                         elif "/C-10 " in line:
-                            ibc = int(line.split("/")[0])
+                            bc[rp]["ibc"] = int(line.split("/")[0])
                         elif "/C-11 " in line:
                             vals = line.split("/")[0].split()
-                            jj.append(int(vals[0]))
-                            nn.append(int(vals[1]))
-                            ntx.append(int(vals[2]))
-                            pfdum.append(float(vals[3]))
+                            bc[rp]["ntx"].append(
+                                (
+                                    int(vals[0]),
+                                    int(vals[1]),
+                                    int(vals[2]),
+                                    float(vals[3]),
+                                )
+                            )
                         line = fo.readline()
                 elif "-999999 /End" in line:
                     print("Reached end of file")
                 else:
                     print(f"{line} ignored")
                 line = fo.readline()
+        self.textures = textures
+        self.bc = bc
+        if len(np.unique(delt)) != 1:
+            self.delt = delt
+        else:
+            self.delt = delt[0]
+        if len(np.unique(tmlt)) != 1:
+            self.tmlt = tmlt
+        else:
+            self.tmlt = tmlt[0]
+        if len(np.unique(dltmx)) != 1:
+            self.dltmx = dltmx
+        else:
+            self.dltmx = dltmx[0]
+        if len(np.unique(dltmin)) != 1:
+            self.dltmin = dltmin
+        else:
+            self.dltmin = dltmin[0]
+        if len(np.unique(tred)) != 1:
+            self.tred = tred
+        else:
+            self.tred = tred[0]
+        if len(np.unique(dsmax)) != 1:
+            self.dsmax = dsmax
+        else:
+            self.dsmax = dsmax[0]
+        if len(np.unique(sterr)) != 1:
+            self.sterr = sterr
+        else:
+            self.sterr = sterr[0]
+        if len(np.unique(prnt)) != 1:
+            self.prnt = prnt
+        else:
+            self.prnt = prnt[0]
 
 
 #%%
@@ -726,7 +777,8 @@ if __name__ == "__main__":
     # bc = ml.get_bc()
     # ml.define_rp(bc={0: bc})
     # abc = ml.write_input()
-    l = ml.read(path="vs2drt1.dat")
+    ml.read(path="vs2drt1.dat")
+    abc = ml.write_input()
 # print(l)
 
 # %%
