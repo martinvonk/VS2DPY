@@ -446,7 +446,7 @@ class Model:
         B["B01"] = f"{self.eps} {self.hmax} {self.wus} /B-1 -- EPS, HMAX, WUS\n"
         B["B04"] = f"{self.minit} {self.itmax} /B-4 -- MINIT, ITMAX\n"
         B["B05"] = f"{['T' if x else 'F' for x in (self.phrd,)][0]} /B-5 -- PHRD\n"
-        B["B06"] = f"{self.ntex} /B-6 -- NTEX, NPROP"
+        B["B06"] = f"{self.ntex} {self.nprop} /B-6 -- NTEX, NPROP\n"
         B["B07"] = f"{self.hft} /B-7 -- HFT hydraulicFunctionType\n"
         B["B08"] = ""  # also B09
         for ky in self.textures:
@@ -736,8 +736,10 @@ class Model:
                                 bc[rp]["jspx"] = []
                                 line = fo.readline()
                                 while " /C-10 " not in line:
-                                    j, n = line.split()
-                                    bc[rp]["jspx"].append((int(j), int(n)))
+                                    vals = line.split()
+                                    j = int(vals[0])
+                                    n = int(vals[0])
+                                    bc[rp]["jspx"].append((j, n))
                                     line = fo.readline()
                                 else:
                                     continue
