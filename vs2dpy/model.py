@@ -3,13 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from subprocess import PIPE, STDOUT, Popen
 
 
 class Model:
     def __init__(
         self,
         ws: str,
-        exe: str = "vs2drt.exe",
+        exe: str = "vs2drt",
         titl: str = "Model created with VS2DPY",
         tmax: float = 1.0,
         stim: float = 0.0,
@@ -23,8 +24,8 @@ class Model:
 
         self.ws = ws
 
-        if not os.path.exists(exe):
-            raise OSError("Executable not found.")
+        if exe is None:
+            self.exe = "C:/Program Files/USGS/vs2drti-1.6.0/bin/vs2drt.exe"
         else:
             self.exe = exe
 
@@ -393,14 +394,18 @@ class Model:
         else:
             self.bc = bc  # C-4 - C-11
 
-    def write_input(self, path="vs2drt.dat"):
+    def write_input(self, ignore_settings=True):
+        # vs2drt.dat file
         A = self.write_A()
         B = self.write_B()
         C = self.write_C()
         ABC = list(A.values()) + list(B.values()) + list(C.values())
-        with open(path, "w") as fo:
+        with open(f"{self.ws}/vs2drt.dat", "w") as fo:
             fo.writelines(ABC)
-        # return ABC
+        # vs2drt.fil file
+        fil = self.write_fil(ignore_settings=ignore_settings)
+        with open(f"{self.ws}/vs2drt.fil", "w") as fo:
+            fo.writelines(fil)
 
     def write_A(self):
         A = OrderedDict()
@@ -520,6 +525,19 @@ class Model:
         C[f"{ky:{fs}}_C99"] = f"-999999 /End of input data file"
         return C
 
+    def write_fil(self, ignore_settings=True):
+        lines = ["vs2drt.dat\n", "vs2drt.out\n"]
+        if self.f7p or ignore_settings:
+            lines.append("file07.out\n")
+        if self.f8p or ignore_settings:
+            lines.append("variables.out\n")
+        if self.f9p or ignore_settings:
+            lines.append("balance.out\n")
+        if self.f11p or ignore_settings:
+            lines.append("obsPoints.out\n")
+        lines.append("# vs2drt1.1\n")
+        return lines
+
     def read(self, path="vs2drt.dat"):
         textures = {}
         bc = {}
@@ -564,7 +582,6 @@ class Model:
                     self.f11p, self.f7p, self.f8p, self.f9p, self.f6p = [
                         True if x == "T" else False for x in ls.split()
                     ]
-                    print(ls)
                 elif "/A-13" in line:
                     self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt = [
                         True if x == "T" else False for x in ls.split()
@@ -777,21 +794,56 @@ class Model:
         else:
             self.prnt = prnt[0]
 
+    def run_model(
+        self,
+        silent=False,
+        report=True,
+    ):
+        """
+        This function will run the model using subprocess.Popen. It
+        communicates with the model's stdout asynchronously and reports
+        progress to the screen.
 
-#%%
-if __name__ == "__main__":
-    # print(["T" if x else "F" for x in (True, True, False)])
-    ml = Model("test", "test/test.exx")
-    # ml.define_output(pltim=np.arange(1))
-    # ml.define_domain()
-    # ml.define_soil()
-    # ml.define_initialc()
-    # ml.define_solver()
-    # bc = ml.get_bc()
-    # ml.define_rp(bc={0: bc})
-    # abc = ml.write_input()
-    ml.read(path="vs2drt0.dat")
-    abc = ml.write_input()
-# print(l)
-ml.nplt
-# %%
+        Parameters
+        ----------
+        silent : boolean
+            Echo run information to screen (default is True).
+        report : boolean, optional
+            Save stdout lines to a list (buff) which is returned
+            by the method . (default is True).
+
+        Returns
+        -------
+        (success, buff)
+        success : boolean
+        buff : list of lines of stdout
+        """
+        success = False
+        buff = []
+
+        # convert normal_msg to a list of lower case str for comparison
+        normal_msg = ["seconds"]
+
+        # create a list of arguments to pass to Popen
+        argv = []
+        # argv.append(f"cd {self.ws}")
+        argv.append(self.exe)
+
+        # run the model with Popen
+        proc = Popen(argv, stdout=PIPE, stderr=STDOUT, cwd=self.ws)
+
+        while True:
+            line = proc.stdout.readline().decode("utf-8")
+            if line:
+                for msg in normal_msg:
+                    if msg in line.lower():
+                        success = True
+                        break
+                line = line.rstrip("\r\n")
+                if not silent:
+                    print(line)
+                if report:
+                    buff.append(line)
+            else:
+                break
+        return success, buff
