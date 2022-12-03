@@ -348,9 +348,10 @@ class Model:
         seep: bool = False,
         pond: float = 0.0,
         nfcs: int = 1,
-        jj: int = 1,
-        jlast: int = 0,
-        jspx: list[tuple] = None,
+        seepf: dict = {},
+        # jj: int = 1,
+        # jlast: int = 0,
+        # jspx: list[tuple] = None,
         ibc: int = 0,
         ntx: np.ndarray = None,
     ):
@@ -361,11 +362,22 @@ class Model:
         bc["seep"] = seep  # C-6
         if seep:
             bc["nfcs"] = nfcs  # C-6
-            bc["jj"] = jj  # C-6
-            bc["jlast"] = jlast  # C-6
-            if len(jspx) != jj:
-                raise ValueError(f"Number of entries of JSPX must be equal to JJ")
-            bc["jspx"] = jspx
+            bc["seepf"] = seepf
+            seepfkeys = list(seepf.keys())
+            if len(seepfkeys) != nfcs:
+                raise ValueError(f"Number of entries of SEEPF must be equal to JJ")
+            for x in range(nfcs):
+                kys = (f"jj_{x}", f"jlast_{x}", f"jspx_{x}")
+                for ky in kys:
+                    if ky not in seepfkeys:
+                        raise ValueError(f"{ky} must be in in SEEPF dictionary")
+                if len(seepf[kys[2]]) != seepf[kys[0]]:
+                    raise ValueError(
+                        f"Number of entries of JSPX  in SEEPF dictionary must be equal to JJ"
+                    )
+            # bc["seepf"]["jj"] = jj  # C-6
+            # bc["seepf"]["jlast"] = jlast  # C-6
+            # bc["jspx"] = jspx
         bc["ibc"] = ibc  # C-10
         if ibc == 0:
             if ntx is None:
@@ -425,7 +437,7 @@ class Model:
             "T" if x else "F"
             for x in (self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt)
         ]
-        A["A13"] = " ".join(A_13) + " /A-13 -- THPT, SPNT, PPNT, HPNT, IFAC\n"
+        A["A13"] = " ".join(A_13) + " /A-13 -- THPT, SPNT, PPNT, HPNT, VPNT\n"
         A["A14"] = f"0 1 /A-14 -- IFAC, FACX. A-15 begins next line: DXR\n"
         A["A15"] = f"{' '.join(self.dxr.astype(str))} \n"
         A["A17"] = f"0 1 /A-17 -- JFAC, FACZ. A-18 begins next line: DELZ\n"
@@ -488,7 +500,7 @@ class Model:
         for ky, bc in self.bc.items():
             C[
                 f"{ky:{fs}}_C01"
-            ] = f"1.0 {self.delt} /C-1 -- TPER, DELT (Recharge Period {ky})\n"
+            ] = f"{self.tper[ky-1]} {self.delt} /C-1 -- TPER, DELT (Recharge Period {ky})\n"
             C[
                 f"{ky:{fs}}_C02"
             ] = f"{self.tmlt} {self.dltmx} {self.dltmin} {self.tred} /C-2 -- TMLT, DLTMX, DLTMIN, TRED\n"
@@ -501,19 +513,22 @@ class Model:
             ]
             C[f"{ky:{fs}}_C06"] = f"{' '.join(C_06)} /C-6 -- BCIT, ETSIM, SEEP\n"
             if bc["seep"]:
-                C[f"{ky:{fs}}_C07"] = f"{bc['nfcs']} /C-7 -- NFCS\n"
                 C[
-                    f"{ky:{fs}}_C08"
-                ] = f"{bc['jj']} {bc['jlast']}/C-8 --  JJ, JLAST. C-9 begins next line: J, N\n"
-                C[f"{ky:{fs}}_C09"] = ""
-                for i in range(bc["jj"]):
-                    vals = bc["jspx"][i]
-                    C[f"{ky:{fs}}_C09"] += f"{vals[0]} {vals[1]}\n"
+                    f"{ky:{fs}}_C07"
+                ] = f"{bc['nfcs']} /C-7 -- NFCS\n"  # moet hier iets mee, loopen door aantal seepage faces
+                for k in range(bc["nfcs"]):
+                    C[
+                        f"{ky:{fs}}_C08_{k}"
+                    ] = f"{bc['seepf'][f'jj_{k}']} {bc['seepf'][f'jlast_{k}']} /C-8 -- JJ, JLAST. C-9 begins next line: J, N\n"
+                    C[f"{ky:{fs}}_C09_{k}"] = ""
+                    for i in range(bc["seepf"][f"jj_{k}"]):
+                        vals = bc["seepf"][f"jspx_{k}"][i]
+                        C[f"{ky:{fs}}_C09_{k}"] += f"{vals[0]} {vals[1]}\n"
             C[f"{ky:{fs}}_C10"] = f"{bc['ibc']} /C-10 -- IBC\n"
             C[f"{ky:{fs}}_C11"] = ""
             for jjnnntx in bc["ntx"]:
-                jj = int(jjnnntx[0] + 1)
-                nn = int(jjnnntx[1] + 1)
+                jj = int(jjnnntx[0])
+                nn = int(jjnnntx[1])
                 ntx = int(jjnnntx[2])
                 pfdum = float(jjnnntx[3])
                 C[
@@ -541,6 +556,8 @@ class Model:
     def read(self, path="vs2drt.dat"):
         textures = {}
         bc = {}
+        seepf = None
+        tper = []
         delt = []
         tmlt = []
         dltmx = []
@@ -702,7 +719,7 @@ class Model:
                     rp = int(line.split("(")[-1].split(")")[0].split()[-1])
                     bc[rp] = {}
                     bc[rp]["ntx"] = []
-                    bc[rp]["tper"] = ls.split()[0]
+                    tper.append(float(ls.split()[0]))
                     delt.append(float(ls.split()[1]))
                     line = fo.readline()
                     while "-999999" not in line:
@@ -728,21 +745,30 @@ class Model:
                             ]
                         elif "/C-7 " in line:
                             bc[rp]["nfcs"] = int(line.split("/")[0])
+                            seepf = {}
+                            k = 0
                         elif "/C-8 " in line:
                             ls = line.split("/")[0].split()
-                            bc[rp]["jj"] = int(ls[0])
-                            bc[rp]["jlast"] = int(ls[1])
-                            if " C-9 " in line:
-                                bc[rp]["jspx"] = []
+                            seepf[f"jj_{k}"] = int(ls[0])
+                            seepf[f"jlast_{k}"] = int(ls[1])
+                            seepf[f"jspx_{k}"] = []
+                            line = fo.readline()  # go to C-9
+                            while "/C-10 " not in line:
+                                if "/C-8 " in line:
+                                    k += 1
+                                    ls = line.split("/")[0].split()
+                                    seepf[f"jj_{k}"] = int(ls[0])
+                                    seepf[f"jlast_{k}"] = int(ls[1])
+                                    seepf[f"jspx_{k}"] = []
+                                    line = fo.readline()  # go to C-9
+                                vals = line.split()
+                                j = int(vals[0])
+                                n = int(vals[1])
+                                seepf[f"jspx_{k}"].append((j, n))
                                 line = fo.readline()
-                                while " /C-10 " not in line:
-                                    vals = line.split()
-                                    j = int(vals[0])
-                                    n = int(vals[0])
-                                    bc[rp]["jspx"].append((j, n))
-                                    line = fo.readline()
-                                else:
-                                    continue
+                            else:
+                                bc[rp]["seepf"] = seepf
+                                continue
                         elif "/C-10 " in line:
                             bc[rp]["ibc"] = int(line.split("/")[0])
                         elif "/C-11 " in line:
@@ -763,6 +789,7 @@ class Model:
                 line = fo.readline()
         self.textures = textures
         self.bc = bc
+        self.tper = np.array(tper)
         if len(np.unique(delt)) != 1:
             self.delt = delt
         else:
