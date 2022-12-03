@@ -450,7 +450,7 @@ class Model:
             A["A23"] = f"{self.obsrowncoln} /A-23 -- ROW(N), COL(N),N=1,NOBS)\n"
         if self.f9p:
             A["A24"] = f"{self.nmb9} /A-24 -- NMB9\n"
-            A["A25"] = f"{' '.join((self.mb9+1).astype(str))} /A-25 -- MB9\n"
+            A["A25"] = f"{' '.join((self.mb9).astype(str))} /A-25 -- MB9\n"
         return A
 
     def write_B(self):
@@ -462,7 +462,7 @@ class Model:
         B["B07"] = f"{self.hft} /B-7 -- HFT hydraulicFunctionType\n"
         B["B08"] = ""  # also B09
         for ky in self.textures:
-            B["B08"] += f"{ky+1} /B-8 -- ITEX. B-9 to begin next line: HK\n"
+            B["B08"] += f"{ky} /B-8 -- ITEX. B-9 to begin next line: HK\n"
             B["B08"] += f"{' '.join(self.textures[ky].astype(str))}\n"
         B["B12"] = f"0 /B-12 -- IROW. B-13 begins next line: JTEX\n"
         B["B13"] = ""
