@@ -580,9 +580,9 @@ class Model:
                     vals = ls.split()
                     self.tmax = float(vals[0])
                     self.stim = float(vals[1])
-                    _ = float(vals[2])  # ang
+                    # _ = float(vals[2])  # ang
                 elif "/A-3 " in line:
-                    self.zunit, self.tunit, self.cunx, self.hunx = ls.split()
+                    self.zunit, self.tunit, _, _ = ls.split()
                 elif "/A-4 " in line:
                     vals = ls.split()
                     self.nxr = int(vals[0])
