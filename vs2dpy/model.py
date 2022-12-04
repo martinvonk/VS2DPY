@@ -423,7 +423,7 @@ class Model:
         A = OrderedDict()
         A["A01"] = f"{self.titl} /A-1 -- TITL\n"
         A["A02"] = f"{self.tmax} {self.stim} 0. /A-2 -- TMAX, STIM, ANG\n"
-        A["A03"] = f"{self.zunit} {self.tunit} g J /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n"
+        A["A03"] = f"{self.zunit}   {self.tunit} g J /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n"
         A["A04"] = f"{self.nxr} {self.nly} /A-4 -- NXR, NLY\n"
         A["A05"] = f"{self.nrech} {self.numt} /A-5 -- NRECH, NUMT\n"
         A_06 = ["F"] + ["T" if x else "F" for x in (self.itstop,)] + ["F", "F"]
