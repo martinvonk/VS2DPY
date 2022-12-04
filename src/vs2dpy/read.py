@@ -1,6 +1,8 @@
 import os
+import re
 from io import BytesIO
 from numpy import genfromtxt, arange, empty
+from pandas import read_csv
 
 
 class var_out:
@@ -85,3 +87,59 @@ class var_out:
         self,
     ):
         return self.get_data(arange(len(self.time_pointers)).tolist())
+
+
+class bal_out:
+    def __init__(self, path: str = "balance.out"):
+
+        self.path = path
+
+        with open(path, "r") as fo:
+            header = []
+            colnames = ["time"]
+            for _ in range(3):
+                header.append(re.split(r"\s{2,}", fo.readline()))
+            for j in range(1, len(header[1]) - 1):
+                name = f"{header[0][j+1]} " + f"{header[1][j]} " + f"{header[2][j]}"
+                colnames.append(name.replace("- ", "").replace(" + ", "+").lower())
+            df = read_csv(fo, names=colnames, delim_whitespace=True, index_col=0)
+        self.df = df
+        self.columns = colnames[1:]
+        self.times = df.index.to_list()
+
+    def get_data(
+        self,
+        timesteps: list[int] = None,
+        times: list[float] = None,
+        columns: list = None,
+    ):
+        if columns is None:
+            columns = self.columns
+
+        if not isinstance(timesteps, list):
+            timesteps = [timesteps]
+
+        if not isinstance(times, list):
+            times = [times]
+
+        if times != [None]:
+            return self.df.loc[times, columns]
+        else:
+            if timesteps == [None]:
+                return self.df.iloc[:, [self.df.columns.get_loc(c) for c in columns]]
+            else:
+                return self.df.iloc[
+                    timesteps, [self.df.columns.get_loc(c) for c in columns]
+                ]
+
+    def plot(
+        self,
+        timesteps: list[int] = None,
+        times: list[float] = None,
+        term: str = "time step",  # total, rate
+        **kwargs,
+    ):
+        columns = [x for x in self.columns if term in x]
+        df = self.get_data(timesteps, times, columns)
+        ax = df.plot(**kwargs)
+        return ax
