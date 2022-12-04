@@ -135,7 +135,7 @@ class Model:
         pltim: np.ndarray = None,
         nobs: int = 0,
         obsrowncoln: list[tuple] = None,
-        nmb9: int = 1,
+        nmb9: int = -33,
         mb9: np.ndarray = None,
         numbf: int = 0,
         maxcells: int = 0,
