@@ -1,8 +1,9 @@
 import os
 import re
 from io import BytesIO
-from numpy import genfromtxt, arange, empty
 from pandas import read_csv
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class var_out:
@@ -50,9 +51,9 @@ class var_out:
             byte_diff1 = end_count[0] - time_count[0]  # bytes of TIME = line
             byte_diff2 = byte_diff0 - byte_diff1  # bytes of one full matrix
 
-        times_pointer = arange(time_count[0], self.size, byte_diff0)
+        times_pointer = np.arange(time_count[0], self.size, byte_diff0)
         byte_diffs = [byte_diff0, byte_diff1, byte_diff2]
-        shape = genfromtxt(lines[1:]).shape
+        shape = np.genfromtxt(lines[1:]).shape
         return times_pointer, byte_diffs, shape
 
     def get_times(
@@ -76,17 +77,31 @@ class var_out:
             timesteps = [self.times.index(x) for x in times]
 
         tps = [self.time_pointers[x] for x in timesteps]
-        datas = empty((len(tps), self.shape[0], self.shape[1]))
+        datas = np.empty((len(tps), self.shape[0], self.shape[1]))
         with open(self.path, "rb") as fo:
             for i, tp in enumerate(tps):
                 fo.seek(tp + self.byte_diffs[1])
-                datas[i] = genfromtxt(BytesIO(fo.read(self.byte_diffs[2])))
+                datas[i] = np.genfromtxt(BytesIO(fo.read(self.byte_diffs[2])))
         return datas
 
     def get_all_data(
         self,
     ):
-        return self.get_data(arange(len(self.time_pointers)).tolist())
+        return self.get_data(np.arange(len(self.time_pointers)).tolist())
+
+    def plot(self, timesteps: list[int] = None, times: list[float] = None):
+
+        if times is None:
+            if timesteps is not None:
+                times = [self.times[x] for x in timesteps]
+            else:
+                times = self.times
+
+        datas = self.get_data(times=times)[:, 1:-1, 1:-1]
+        _, ax = plt.subplots(figsize=(self.shape[1] / 10, self.shape[0] / 10))
+        for t, data in zip(times, datas):
+            ax.pcolormesh(data, vmin=np.min(datas), vmax=np.max(datas))
+            ax.set_title(f"{t=}")
 
 
 class bal_out:
