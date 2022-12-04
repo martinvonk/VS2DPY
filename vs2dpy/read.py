@@ -40,7 +40,8 @@ class var_out:
                 if lines is not None:
                     lines.append(line)
                 line = fo.readline()
-
+            if len(time_count) == 1:
+                time_count.append(self.size)
             byte_diff0 = (
                 time_count[1] - time_count[0]
             )  # bytes of one full matrix including TIME = line
