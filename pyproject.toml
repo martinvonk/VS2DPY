@@ -1,0 +1,18 @@
+[project]
+name = "vs2dpy"
+version = "1.0.0"
+authors = [
+  { name="Martin Vonk" },
+]
+description = "Python package to create VS2DRTI unsaturated zone models"
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.7"
+dependencies = [
+  "numpy", "matplotlib",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
