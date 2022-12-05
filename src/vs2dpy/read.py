@@ -70,10 +70,9 @@ class var_out:
         if not isinstance(timesteps, list):
             timesteps = [timesteps]
 
-        if not isinstance(times, list):
-            times = [times]
-
-        if times != [None]:
+        if times is not None:
+            if not isinstance(times, list):
+                times = [times]
             timesteps = [self.times.index(x) for x in times]
 
         tps = [self.time_pointers[x] for x in timesteps]
@@ -98,8 +97,8 @@ class var_out:
                 times = self.times
 
         datas = self.get_data(times=times)[:, 1:-1, 1:-1]
-        _, ax = plt.subplots(figsize=(self.shape[1] / 10, self.shape[0] / 10))
         for t, data in zip(times, datas):
+            _, ax = plt.subplots(figsize=(self.shape[1] / 10, self.shape[0] / 10))
             ax.pcolormesh(data, vmin=np.min(datas), vmax=np.max(datas))
             ax.set_title(f"{t=}")
 
@@ -131,18 +130,16 @@ class bal_out:
         if columns is None:
             columns = self.columns
 
-        if not isinstance(timesteps, list):
-            timesteps = [timesteps]
-
-        if not isinstance(times, list):
-            times = [times]
-
-        if times != [None]:
+        if times is not None:
+            if not isinstance(times, list):
+                times = [times]
             return self.df.loc[times, columns]
         else:
-            if timesteps == [None]:
+            if timesteps is None:
                 return self.df.iloc[:, [self.df.columns.get_loc(c) for c in columns]]
             else:
+                if not isinstance(timesteps, list):
+                    timesteps = [timesteps]
                 return self.df.iloc[
                     timesteps, [self.df.columns.get_loc(c) for c in columns]
                 ]
