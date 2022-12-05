@@ -868,8 +868,10 @@ class Model:
             A["A20"] = f"{self.nplt} /A-20 -- NPLT. A-21 begins next line: PLTIM\n"
             A["A21"] = f"{' '.join(self.pltim.astype(str))}\n"
         if self.f11p:
-            A["A22"] = f"{self.nobs} /A-22 -- NOBS\n"
-            A["A23"] = f"{self.obsrowncoln} /A-23 -- ROW(N), COL(N),N=1,NOBS)\n"
+            A["A22"] = f"{self.nobs} /A-22 -- NOBS. A-23 begins next line: J, N\n"
+            A["A23"] = ""
+            for jn in self.obsrowncoln:
+                A["A23"] += f"{jn[0]} {jn[1]}\n"
         if self.f9p:
             A["A24"] = f"{self.nmb9} /A-24 -- NMB9\n"
             A["A25"] = f"{' '.join((self.mb9).astype(str))} /A-25 -- MB9\n"
