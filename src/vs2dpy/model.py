@@ -430,7 +430,7 @@ class Model:
         ntex: int = 1,
         nprop: int = 6,
         hft: int = 1,
-        textures: dict = {0: np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])},
+        textures: dict = {1: np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])},
         jtex: np.ndarray = None,
     ):
         """Define soil attributes
@@ -452,7 +452,7 @@ class Model:
             Genuchten; HFT=2 for Haverkamp; HFT=3 for tabular data; and HFT=4
             for Rossi-Nimmo, by default 1 (van Genuchten)
         textures : dict, optional
-            Dictionary with textures, by default {0: np.array([1.0, 0.0, 0.0,
+            Dictionary with textures, by default {1: np.array([1.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0])} which is the inactive cell texture. The key
             of the dictionary has to be an intiger (ITEX) with the texture as
             defined in jtex. Definitions for the remaining sequential values
