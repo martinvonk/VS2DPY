@@ -692,6 +692,64 @@ class Model:
         ibc: int = 0,
         ntx: np.ndarray = None,
     ):
+        """Create boundary condtition dictionary for a recharge period
+
+        Parameters
+        ----------
+        bcitrp : bool, optional
+            Logical variable, if evaporation is to be simulated for this
+            recharge period, by default False
+        etsimrp : bool, optional
+            Logical variable, if evapotranspiration (plant-root extraction) is
+            to be simulated for this recharge period, by default False
+        seep : bool, optional
+            Logical variable, if seepage faces are to be simulated for this
+            recharge period, by default False
+        pond : float, optional
+            Maximum allowed height of ponded water for constant flux nodes, by
+            default 0.0
+        nfcs : int, optional
+            Number of possible seepage faces, by default 1
+        seepf : dict, optional
+            Seepage face dictionary containing the JJ, JLAST and JSPX for each
+            seepage face. Per possible seepage face, the key has to be updated
+            such that the dictionary has "jj_0", "jj_1", ..., "jj_n" for n =
+            NFCS. The same holds for "jlast_n" and "jspx_n" where the value of
+            seepf["jspx_n"] has to be a list of tuples for the seepage face
+            nodes, by default {}
+        ibc : int, optional
+            Code for reading in boundary conditions by individual node (IBC=0)
+            or by row or column (IBC=1). Only one code may be used for each
+            recharge period, and all boundary conditions for period must be
+            input in the sequence for that code., by default 0
+        ntx : np.ndarray, optional
+
+            Numpy array with four columns for JJ, NN, NTX and PFDUM. Each row
+            is a node where a boundary condition is defined, by default None JJ
+            is the row number. NN is the row column, NTX is the boundary
+            condition with:
+            NTX=0 for no specified boundary (needed for resetting some nodes
+            after initial recharge period);
+            NTX=1 for specified pressure head;
+            NTX=2 for specified flux per unit horizontal surface area [L/T];
+            NTX=3 for possible seepage face;
+            NTX=4 for specified total head;
+            NTX=5 for evaporation;
+            NTX=6 for specified volumetric flow in units [L3/T];
+            NTX=7 for gravity drain. (The gravity drain boundary condition
+            allows gravity driven vertical flow out of the domain assuming a
+            unit vertical hydraulic gradient. Flow into the domain cannot
+            occur.)
+            PFDUM is the specified head for NTX=1 or 4 or specified flux for
+            NTX=2 or 6. If codes 0, 3, 5, or 7 are specified, the line should
+            contain a dummy value for PFDUM.
+
+        Returns
+        -------
+        dictionary
+            Dictionary with the boundary condition of a recharge period
+
+        """
         bc = {}
         bc["pond"] = pond  # C-4
         bc["bcitrp"] = bcitrp  # C-6
@@ -733,6 +791,18 @@ class Model:
         tper: np.ndarray = np.array([1.0]),
         bc: dict[dict] = None,
     ):
+        """Define recharge period
+
+        Parameters
+        ----------
+        tper : np.ndarray, optional
+            Lenght of this recharge period, by default np.array([1.0])
+        bc : dict[dict], optional
+            Dictionary timestep as key and boundary condition dicitionary,
+            created with create_bc() function as values boundary conditions, by
+            default None
+
+        """
         self.tper = tper  # C-1
         if len(tper) != len(bc):
             raise ValueError(
@@ -796,7 +866,7 @@ class Model:
         A["A18"] = f"{' '.join(self.delz.astype(str))} /End A-18\n"
         if self.f8p:
             A["A20"] = f"{self.nplt} /A-20 -- NPLT. A-21 begins next line: PLTIM\n"
-            A["A21"] = f"{' '.join(self.pltim.astype(str))} /A-21\n"
+            A["A21"] = f"{' '.join(self.pltim.astype(str))}\n"
         if self.f11p:
             A["A22"] = f"{self.nobs} /A-22 -- NOBS\n"
             A["A23"] = f"{self.obsrowncoln} /A-23 -- ROW(N), COL(N),N=1,NOBS)\n"
@@ -1036,15 +1106,24 @@ class Model:
                     if " A-21 " in line:
                         pltim = np.array([])
                         line = fo.readline()
-                        while "/A-24 " not in line:
-                            if "/End" in line:
-                                arr = np.array(line.split("/")[0].split())
-                            else:
-                                arr = np.array(line.split())
-                                pltim = np.append(pltim, arr)
+                        while "/" not in line:
+                            arr = np.array(line.split())
+                            pltim = np.append(pltim, arr)
                             line = fo.readline()
                         else:
                             self.pltim = pltim.astype(float)
+                            continue
+                elif "/A-22" in line:
+                    self.nobs = int(ls)
+                    if " A-23" in line:
+                        obsrowncoln = []
+                        line = fo.readline()
+                        while "/" not in line:
+                            vals = line.split()
+                            obsrowncoln.append((int(vals[0]), int(vals[1])))
+                            line = fo.readline()
+                        else:
+                            self.obsrowncoln = obsrowncoln
                             continue
                 elif "/A-24 " in line:
                     self.nmb9 = int(ls)
