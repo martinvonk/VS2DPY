@@ -14,8 +14,31 @@ class Model:
         tmax: float = 1.0,
         stim: float = 0.0,
         zunit: str = "m",
-        tunit: str = "sec",  # hour day year
+        tunit: str = "sec",
     ):
+        """Initialize model
+
+        Parameters
+        ----------
+        ws : str
+            Workspace directory where files are stored
+        exe : str, optional
+            Executable path, by default 'vs2drt' which is the case
+            if the executable is added to the
+        titl : str, optional
+            Description of the model, by default 'Model created with VS2DPY'
+            String can't have more than 80 characters
+        tmax : float, optional
+            Maximum simulation time, by default 1.0
+        stim : float, optional
+            Initial time, by default 0.0
+        zunit : str, optional
+            Units used for length, by default 'm'
+        tunit : str, optional
+            Units used for time, by default 'sec' Other alternatives are
+            'hour', 'day', 'year', etc.
+
+        """
 
         if not os.path.exists(ws):
             os.mkdir(ws)
@@ -144,6 +167,105 @@ class Model:
         bcrowncoln: list[tuple] = None,
         prnt: bool = False,
     ):
+        """Define which output is provided
+
+        file 6 = vs2drt.out
+        file 7 = file07.out?
+        file 8 = variables.out
+        file 9 = balance.out?
+        file 11 = obsPoints.out?
+
+        Parameters
+        ----------
+        nrech : int, optional
+            Number of recharge periods, by default 1 Set NRECH to a negative
+            number to output binary values of head and concentration at
+            selected observation times to file fort.12. Selecting this option
+            allows the simulation to be restarted at any observation time;
+            however, it may require a large amount of disk storage space.
+        numt : int, optional
+            Maximum number of time steps, by default 1 If enhanced precision in
+            print out to file 9 and file 11 is desired, set NUMT equal to a
+            negative number
+        f11p : bool, optional
+            Logical variable, if concentration, head, moisture content, and
+            saturation at selected observation points are to be written to file
+            11 at end of each time step, by default False
+        f7p : bool, optional
+            Logical variable, if fluxes through selected boundary faces are
+            output to file07.out for each time step (boundary faces are
+            specified on input lines B-33 to B-35), by default False
+        f8p : bool, optional
+            Logical variable, if output of pressure heads, concentrations, and
+            temperatures to file 8 is desired at selected observation times;
+            otherwise F8P=F, by default True
+        f9p : bool, optional
+            Logical variable, if one-line mass balance summary for each time
+            step is to be written to file 9, by default True
+        f6p : bool, optional
+            Logical variable, if if mass balance is to be written to file
+            6 for each time step; otherwise False if mass balance is to be
+            written to file 6 only at observation times and ends of recharge
+            periods, by default False
+        thpt : bool, optional
+            Logical variable, if volumetric moisture contents are to be
+            written to file 6, by default False
+        spnt : bool, optional
+            Logical variable, if saturations are to be written to file 6, by
+            default False
+        ppnt : bool, optional
+            Logical variable if pressure heads are to be written to file 6, by
+            default False
+        hpnt : bool, optional
+            Logical variable, if total heads are to be written to file 6, by
+            default False
+        vpnt : bool, optional
+            Logical variable, if velocities are to be written to file 6, by
+            default False
+        nplt : int, optional
+            Number of elapsed times at which to write pressure heads,
+            temperatures, and concentrations to file 8 and heads, temperatures,
+            concentrations, saturations, moisture contents, and/or velocities
+            to file 6, by default 1
+        pltim : np.ndarray, optional
+            Elapsed times at which pressure heads, temperatures, and
+            concentrations are written to file 8, and heads, concentrations,
+            temperatures, saturations, velocities, and/or moisture contents to
+            file 6, by default None
+        nobs : int, optional
+            Number of observation points for which heads, temperatures,
+            concentrations, moisture contents, and saturations are to be
+            written to file 11. Set NOBS equal to a negative number if output
+            to file 11 is desired only at selected output times rather than at
+            each time step, by default 0
+        obsrowncoln : list[tuple], optional
+            Row and column number for each observation, by default None
+        nmb9 : int, optional
+            Total number of mass balance components written to file 9; number
+            must be less than 73. Set NMB9 equal to a negative number if output
+            to file 9 is desired only at selected output times rather than at
+            each time step, by default -33
+        mb9 : np.ndarray, optional
+            The index number of each mass balance component to be written to
+            file 9, by default None
+        numbf : int, optional
+            Number of boundary faces for which fluxes will be calculated and
+            output to file file07.out, by default 0
+        maxcells : int, optional
+            Maximum number of cells on any boundary face, by default 0
+        idbf : int, optional
+            Boundary face identifier (integer), by default 0
+        numcells : int, optional
+            Number of finite difference cells on this boundary face, by default 0
+        bcrowncoln : list[tuple], optional
+            Row and column number of each cell on this boundary face, by default None
+        prnt : bool, optional
+            Logical variable, if heads, temperatures, concentration, moisture
+            contents, and (or) saturations are to be printed to file 6 after
+            each time step; PRNT=F if they are to be written to file 6 only at
+            observation times and ends of recharge periods, by default False
+
+        """
 
         self.nrech = nrech  # A-5
         self.numt = numt  # A-5
@@ -196,16 +318,32 @@ class Model:
         dxr: np.ndarray = None,
         delz: np.ndarray = None,
     ):
+        """Define domain and grid spacing
+
+        Parameters
+        ----------
+        nxr : int, optional
+            Number of cells in horizontal or radial direction, by default 1
+        nly : int, optional
+            Number of cells in vertical direction, by default 1
+        dxr : np.ndarray, optional
+            Grid spacing in horizontal or radial direction. Number of entries
+            must equal NXR, L, by default None
+        delz : np.ndarray, optional
+            Grid spacing in vertical direction; number of entries must equal
+            NLY, L, by default None
+
+        """
         self.nxr = nxr  # A-4
         self.nly = nly  # A-4
         if dxr is None:  # ifac = 0
-            self.dxr = np.linspace(0, 1, num=nxr)  # A-15
+            self.dxr = np.full((nxr), 1 / nxr)  # A-15
         else:
             if len(dxr) != nxr:
                 raise ValueError("Number of entries must be equal to NXR")
             self.dxr = dxr  # A-15
         if delz is None:  # jfac = 0
-            self.delz = np.linspace(0, 1, num=nly)
+            self.delz = np.full((nly), 1 / nly)
         else:
             if len(delz) != nly:
                 raise ValueError("Number of entries must equal NLY")
@@ -227,6 +365,50 @@ class Model:
         dsmax: float = 100,
         sterr: float = 0.0,
     ):
+        """Define solving attributes
+
+        Parameters
+        ----------
+        itstop : bool, optional
+            Logical variable, if simulation is to terminate after
+            ITMAX iterations in one time step, by default True
+        eps : float, optional
+            Head closure criterion for iterative solution of flow equation, by
+            default 0.0001
+        hmax : float, optional
+            Relaxation parameter for iterative solution. Value is generally in
+            the range of 0.4 to 1.2, by default 0.7
+        wus : float, optional
+            Weighting option for inter-cell relative hydraulic conductivity:
+            WUS=1 for full upstream weighting. WUS=0.5 for arithmetic mean.
+            WUS=0.0 for geometric mean, by default 0.5
+        minit : int, optional
+            Minimum number of iterations per time step, by default 2
+        itmax : int, optional
+            Maximum number of iterations per time step, by default 10
+        delt : float, optional
+            Length of initial time step for this period, T, by default 0.1
+        tmlt : float, optional
+            Multiplier for time step length, by default 1.5
+        dltmx : float, optional
+            Maximum allowed length of time step, by default 1.0
+        dltmin : float, optional
+            Minimum allowed length of time step, by default 0.0001
+        tred : float, optional
+            Factor by which time-step length is reduced if convergence is not
+            obtained in ITMAX iterations. Values usually should be in the range
+            0.1 to 0.5. If no reduction of time-step length is desired, input a
+            value of 0.0, by default 0.01
+        dsmax : float, optional
+            Maximum allowed change in head per time step for this period, by
+            default 100
+        sterr : float, optional
+            Steady-state head criterion; when the maximum change in head
+            between successive time steps is less than STERR, the program
+            assumes that steady state has been reached for this period and
+            advances to next recharge period, by default 0.0
+        """
+
         self.itstop = itstop  # A-6
         self.eps = eps  # B-1
         if 1.2 <= hmax <= 0.4:
@@ -251,6 +433,74 @@ class Model:
         textures: dict = {0: np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])},
         jtex: np.ndarray = None,
     ):
+        """Define soil attributes
+
+        Parameters
+        ----------
+        ntex : int, optional
+            Number of textural classes or lithologies having different values
+            of hydraulic conductivity, specific storage, and (or) constants in
+            the functional relations among pressure head, relative
+            conductivity, and moisture content, by default 1
+        nprop : int, optional
+            Number of flow properties to be read in for each textural class.
+            When using Brooks and Corey, van Genuchten or Nimmo-Rossi
+            functions, set NPROP=6; when using Haverkamp functions, set
+            NPROP=8, by default 6
+        hft : int, optional
+            Hydraulic function type, HFT=0 for Brooks-Corey; HFT=1 for van
+            Genuchten; HFT=2 for Haverkamp; HFT=3 for tabular data; and HFT=4
+            for Rossi-Nimmo, by default 1 (van Genuchten)
+        textures : dict, optional
+            Dictionary with textures, by default {0: np.array([1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0])} which is the inactive cell texture. The key
+            of the dictionary has to be an intiger (ITEX) with the texture as
+            defined in jtex. Definitions for the remaining sequential values
+            are dependent upon which functional relation is selected to
+            represent the nonlinear coefficients. Five different functional
+            relations are allowed as defined by HFT: (0) Brooks-Corey, (1) van
+            Genuchten, (2) Haverkamp, and (4) Rossi-Nimmo. In the following
+            descriptions, definitions for the different functional relations
+            are indexed by the above numbers.The value of the dictionary has to
+            be an numpy array (HK(ITEX,entry)) in the following order:
+            entry 1:
+            Saturated hydraulic conductivity (K) in the x-coordinate direction
+            for class ITEX
+            entry 2:
+            Specific storage (Ss) for class ITEX
+            entry 3:
+            Porosity (θs) for class ITEX. Must be larger than 0.
+            entry 4:
+            (0) hb, Brooks-Corey bubbling pressure head (must be less than 0);
+            (1) alpha, van Genuchten alpha as defined by van Genuchten(1980);
+            (2) A', Haverkamp parameter (must be less than 0.0),;
+            (4) Ψ0, Rossi-Nimmo parameter;
+            entry 5:
+            (0) Residual moisture content (θr).
+            (1) Residual moisture content (θr).
+            (2) Residual moisture content (θr).
+            (4) ΨD, Rossi-Nimmo parameter.
+            entry 6:
+            (0) λ, Brooks-Corey pore-size distribution index;
+            (1) n, van Genuchten parameter, β' in Healy (1990) and Lappala
+            and others (1987);
+            (2) B', Haverkamp parameter;
+            (4) λ, Rossi-Nimmo parameter;
+            entry 7:
+            (0) Not used;
+            (1) Not used;
+            (2) alpha, Haverkamp parameter (must be less than 0.0);
+            (4) Not used;
+            entry 8:
+            (0) Not used;
+            (1) Not used;
+            (2) β, Haverkamp parameter;
+            (4) Not used;
+        jtex : np.ndarray, optional
+            Indices for textural class for each node, read in row by row. There
+            must be NXR*NLY entries, by default None
+
+        """
         self.ntex = ntex  # B-6
         self.hft = hft  # B-7
         if hft in (0, 1, 4):
@@ -276,11 +526,37 @@ class Model:
     def define_initialc(
         self,
         phrd: bool = True,
-        factor: float = 1.0,
         iread: int = 0,
+        factor: float = 1.0,
         dwtx: float = None,
         hmin: float = None,
     ):
+        """Define initial conditions
+
+         Parameters
+         ----------
+         phrd : bool, optional
+             Logical variable, if initial conditions are read in as pressure heads; PHRD=F
+             if initial conditions are read in as moisture contents, by default True
+        iread : int, optional
+             If IREAD=0, all initial conditions in terms of pressure head or
+             moisture content as determined by the value of PHRD are set equal
+             to FACTOR. If IREAD=2 initial conditions are defined in terms of
+             pressure head, and an equilibrium profile is specified above a free
+             -water surface at a depth of DWTX until a pressure head of HMIN is
+             reached. All pressure heads above this are set to HMIN, by default
+             0
+         factor : float, optional
+             Multiplier or constant value, depending on value of IREAD, for
+             initial conditions, by default 1.0
+         dwtx : float, optional
+             Depth to free-water surface above which an equilibrium profile is
+             computed, by default None
+         hmin : float, optional
+             Minimum pressure head to limit height of equilibrium profile. Must
+             be negative, by default None
+
+        """
         self.phrd = phrd  # B-5
         self.iread = iread  # B-15
         self.factor = factor  # B-15
@@ -308,14 +584,76 @@ class Model:
         npv: int = None,
         etcyc: float = None,
         peval: np.ndarray = None,
-        rdc1: np.ndarray = None,  # SRES
-        rdc2: np.ndarray = None,  # HA
+        rdc1: np.ndarray = None,
+        rdc2: np.ndarray = None,
         ptval: np.ndarray = None,
         rdc3: np.ndarray = None,  # RD
         rdc4: np.ndarray = None,  # RAbase
         rdc5: np.ndarray = None,  # RAtop
         rdc6: np.ndarray = None,  # Hroot
     ):
+        """Define evaporation attributes
+
+        Parameters
+        ----------
+        bcit : bool, optional
+            Logical variable, if evaporation is to be simulated at any time
+            during the simulation, by default False
+        etsim : bool, optional
+            Logical variable, ETSIM=T if evapotranspiration (plant-root
+            extraction) is to be simulated at any time during the simulation,
+            by default False
+        npv : int, optional
+            Number of ET periods to be simulated. NPV values for each variable
+            ETSIM=T required for the evaporation and (or) evapotranspiration
+            options must be entered on the following lines. If ET variables are
+            held constant throughout the simulation code, NPV = 1, by default
+            None
+        etcyc : float, optional
+            Length of each ET period, by default None
+        peval : np.ndarray, optional
+            Potential evaporation rate (PEV) at beginning of each ET period.
+            Number of entries must equal NPV. To conform with the sign
+            convention used in most existing equations for potential
+            evaporation, all entries must be greater than or equal to 0. The
+            program multiplies all nonzero entries by -1 so that the
+            evaporative flux is treated as a sink rather than a source, by
+            default None
+        rdc1 : np.ndarray, optional
+            Surface resistance to evaporation (SRES) at beginning of ET period.
+            For a uniform soil, SRES is equal to the reciprocal of the distance
+            from the top active node to land surface, or 2/DELZ(2). If a
+            surface crust is present, SRES may be decreased to account for the
+            added resistance to water movement through the crust. Number of
+            entries must equal NPV, by default None
+        rdc2 : np.ndarray, optional
+            Pressure potential of the atmosphere (HA) at beginning of each ET
+            period; may be estimated using equation 6 of Lappala and others
+            (1987) Number of entries must equal NPV, by default None
+        peval : np.ndarray, optional
+            Potential evapotranspiration rate (PET) at beginning of each ET
+            period, L/T. Number of entries must equal NPV. As with PEV, all
+            values must be greater than or equal to 0, by default None
+        rdc3 : np.ndarray, optional
+            Rooting depth (RD) at beginning of each ET period. Number of
+            entries must equal NPV, by default None
+        rdc4 : np.ndarray, optional
+            Root activity (RAbase) at base of root zone at beginning of each ET
+            period Number of entries must equal NPV, by default None
+        rdc5 : np.ndarray, optional
+            Root activity (RAtop) at top of root zone at beginning of each ET
+            period, Number of entries must equal NPV. Note: Values for root
+            activity generally are determined empirically, but typically range
+            from 0 to 3x10^4 m/m3 . As programmed, root activity varies
+            linearly from land surface to the base of the root zone, and its
+            distribution with depth at any time is represented by a trapezoid.
+            In general, root activities will be greater at land surface than at
+            the base of the root zone, by default None
+        rdc6 : np.ndarray, optional
+            Pressure head in roots (HROOT) at beginning of each ET period.
+            Number of entries must equal NPV, by default None
+
+        """
         self.bcit = bcit  # B-18
         self.etsim = etsim  # B-18
         if bcit or etsim:
@@ -406,6 +744,14 @@ class Model:
             self.bc = bc  # C-4 - C-11
 
     def write_input(self, ignore_settings=True):
+        """Generate vs2drt.dat and vs2drt.fil input files
+
+        Parameters
+        ----------
+        ignore_settings : bool, optional
+            Ignores settings for vs2drt.fil input file and outputs all
+            filetypes, by default True
+        """
         # vs2drt.dat file
         A = self.write_A()
         B = self.write_B()
@@ -419,6 +765,13 @@ class Model:
             fo.writelines(fil)
 
     def write_A(self):
+        """Write part A of vs2drt.dat input file
+
+        Returns
+        -------
+        OrderedDict
+
+        """
         A = OrderedDict()
         A["A01"] = f"{self.titl} /A-1 -- TITL\n"
         A["A02"] = f"{self.tmax} {self.stim} 0. /A-2 -- TMAX, STIM, ANG\n"
@@ -453,6 +806,13 @@ class Model:
         return A
 
     def write_B(self):
+        """Write part B of vs2drt.dat input file
+
+        Returns
+        -------
+        OrderedDict
+
+        """
         B = OrderedDict()
         B["B01"] = f"{self.eps} {self.hmax} {self.wus} /B-1 -- EPS, HMAX, WUS\n"
         B["B04"] = f"{self.minit} {self.itmax} /B-4 -- MINIT, ITMAX\n"
@@ -494,6 +854,13 @@ class Model:
         return B
 
     def write_C(self):
+        """Write part C of vs2drt.dat input file
+
+        Returns
+        -------
+        OrderedDict
+
+        """
         C = OrderedDict()
         fs = f"0{str(list(self.bc.keys())[-1])}d"  # format specifier key
         for ky, bc in self.bc.items():
@@ -540,6 +907,19 @@ class Model:
         return C
 
     def write_fil(self, ignore_settings=True):
+        """Write input for vs2drt.fil file
+
+        Parameters
+        ----------
+        ignore_settings : bool, optional
+            Ignores settings for vs2drt.fil input file and outputs all
+            filetypes, by default True
+
+        Returns
+        -------
+        list
+
+        """
         lines = ["vs2drt.dat\n", "vs2drt.out\n"]
         if self.f7p or ignore_settings:
             lines.append("file07.out\n")
@@ -553,6 +933,14 @@ class Model:
         return lines
 
     def read(self, path="vs2drt.dat"):
+        """Read vs2drt.dat file and add attributes to model
+
+        Parameters
+        ----------
+        path : str, optional
+            Path to vs2drt.dat file, by default "vs2drt.dat"
+
+        """
         textures = {}
         bc = {}
         seepf = None
