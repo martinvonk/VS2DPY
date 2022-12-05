@@ -3,6 +3,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 from subprocess import PIPE, STDOUT, Popen
+from .read import var_out, bal_out
 
 
 class Model:
@@ -1344,3 +1345,9 @@ class Model:
             else:
                 break
         return success, buff
+
+    def read_var_out(self):
+        return var_out(path=f"{self.ws}/variables.out")
+
+    def read_bal_out(self):
+        return bal_out(path=f"{self.ws}/balance.out")
