@@ -297,8 +297,8 @@ class Model:
                 raise ValueError("Number must be less than 73")
             self.nmb9 = nmb9  # A-24
             if mb9 is None:
-                mb9 = np.arange(np.abs(nmb9))
-            if len(mb9) != nmb9:
+                mb9 = np.arange(1, np.abs(nmb9) + 1)
+            if len(mb9) != np.abs(nmb9):
                 raise ValueError("Number of entries must be equal to NMB9")
             self.mb9 = mb9  # A-25
         if self.f7p:
@@ -835,7 +835,7 @@ class Model:
         with open(f"{self.ws}/vs2drt.fil", "w") as fo:
             fo.writelines(fil)
 
-    def write_A(self):
+    def write_A(self) -> OrderedDict:
         """Write part A of vs2drt.dat input file
 
         Returns
@@ -844,9 +844,9 @@ class Model:
 
         """
         A = OrderedDict()
-        A["A01"] = f"{self.titl} /A-1 -- TITL\n"
+        A["A01"] = f"{self.titl}\n"
         A["A02"] = f"{self.tmax} {self.stim} 0. /A-2 -- TMAX, STIM, ANG\n"
-        A["A03"] = f"{self.zunit}   {self.tunit} g J /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n"
+        A["A03"] = f"{self.zunit}   {self.tunit} g   J /A-3 -- ZUNIT, TUNIT, CUNX, HUNX\n"
         A["A04"] = f"{self.nxr} {self.nly} /A-4 -- NXR, NLY\n"
         A["A05"] = f"{self.nrech} {self.numt} /A-5 -- NRECH, NUMT\n"
         A_06 = ["F"] + ["T" if x else "F" for x in (self.itstop,)] + ["F", "F"]
@@ -878,7 +878,7 @@ class Model:
             A["A25"] = f"{' '.join((self.mb9).astype(str))} /A-25 -- MB9\n"
         return A
 
-    def write_B(self):
+    def write_B(self) -> OrderedDict:
         """Write part B of vs2drt.dat input file
 
         Returns
@@ -926,7 +926,7 @@ class Model:
             B["B35"] = f"{self.bcrowncoln} (ROW(N),COL(N),N=1,NUMCELLS)\n"
         return B
 
-    def write_C(self):
+    def write_C(self) -> OrderedDict:
         """Write part C of vs2drt.dat input file
 
         Returns
@@ -979,7 +979,7 @@ class Model:
         C[f"{ky:{fs}}_C99"] = f"-999999 /End of input data file"
         return C
 
-    def write_fil(self, ignore_settings=True):
+    def write_fil(self, ignore_settings=True) -> list:
         """Write input for vs2drt.fil file
 
         Parameters
