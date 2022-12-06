@@ -162,8 +162,8 @@ class ptf:
         k10 = 0.600
         k11 = 0.640
         k12 = 1.260
-        c = c / 100
-        sp = sp / 100
+        c = self.c / 100
+        sp = self.sp / 100
         b = k01 + k02 * c - k03 * sp
         theta_s = k04 - k05 * c - k06 * sp
         psi_s = 0.01 * 10 ** (k07 - k08 * c - k09 * sp)
