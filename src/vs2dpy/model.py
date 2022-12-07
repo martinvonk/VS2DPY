@@ -810,9 +810,17 @@ class Model:
                 f"Number of entries of TPER must be equal to boundary conditions"
             )
         if bc is None:
-            self.bc = self.create_bc()
+            self.bc = {0: self.create_bc()}
         else:
             self.bc = bc  # C-4 - C-11
+
+        for ts in bc:
+            ntx = bc[ts]["ntx"]
+            jj_nn, c = np.unique(ntx[:, 0:2], axis=0, return_counts=True)
+            if len(ntx) != len(jj_nn):
+                raise ValueError(
+                    f"Can't apply two boundary conditions to the same node: {ntx[c, :]}"
+                )
 
     def write_input(self, ignore_settings=True):
         """Generate vs2drt.dat and vs2drt.fil input files
