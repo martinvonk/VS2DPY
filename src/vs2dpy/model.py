@@ -760,7 +760,7 @@ class Model:
             bc["nfcs"] = nfcs  # C-6
             bc["seepf"] = seepf
             seepfkeys = list(seepf.keys())
-            if len(seepfkeys) != nfcs:
+            if int(len(seepfkeys) / 3) != nfcs:
                 raise ValueError(f"Number of entries of SEEPF must be equal to JJ")
             for x in range(nfcs):
                 kys = (f"jj_{x}", f"jlast_{x}", f"jspx_{x}")
