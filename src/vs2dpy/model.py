@@ -1262,7 +1262,7 @@ class Model:
                             )
                         line = fo.readline()
                 elif "-999999 /End" in line:
-                    print("Reached end of file")
+                    print("Reached end of vs2drt.dat file")
                 else:
                     print(f"{line} ignored")
                 line = fo.readline()

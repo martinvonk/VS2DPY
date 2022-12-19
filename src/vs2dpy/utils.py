@@ -28,30 +28,30 @@ def get_gwt_2D(data: np.ndarray, z: np.ndarray) -> np.ndarray:
 class ptf:
     def __init__(
         self,
-        sp: float,
-        s: float,
-        c: float,
+        sand: float,
+        silt: float,
+        clay: float,
     ):
 
-        if sp is None:
-            if s and c is not None:
-                sp = 100 - s - c
+        if sand is None:
+            if silt and clay is not None:
+                sand = 100 - silt - clay
             else:
-                raise ValueError("Sand percentage 'sp' could not be calculated")
-        if s is None:
-            if sp and c is not None:
-                s = 100 - sp - c
+                raise ValueError("Sand percentage 'sand' could not be calculated")
+        if silt is None:
+            if sand and clay is not None:
+                silt = 100 - sand - clay
             else:
                 raise ValueError("Silt percentage 's' could not be calculated")
-        if c is None:
-            if sp and s is not None:
-                c = 100 - sp - s
+        if clay is None:
+            if sand and silt is not None:
+                clay = 100 - sand - silt
             else:
                 raise ValueError("Clay percentage 'c' could not be calculated")
 
-        self.sp = sp  # sand percentage
-        self.s = s  # silt percentage
-        self.c = c  # clay percentage
+        self.sand = sand  # sand percentage
+        self.silt = silt  # silt percentage
+        self.clay = clay  # clay percentage
 
     def schaap(
         self,
@@ -62,7 +62,7 @@ class ptf:
     ):
         from rosetta import rosetta, SoilData
 
-        sd = SoilData.from_array([[self.sp, self.s, self.c, d, th33, th1500]])
+        sd = SoilData.from_array([[self.sand, self.silt, self.clay, d, th33, th1500]])
         theta_r, theta_s, alpha_, n_, ks_ = tuple(rosetta(version, sd)[0][0])
         l = 0.5
         return theta_r, theta_s, np.exp(ks_), np.exp(alpha_), np.exp(n_), l
@@ -72,77 +72,77 @@ class ptf:
 
         theta_s = (
             0.7919
-            + 0.001691 * self.c
+            + 0.001691 * self.clay
             - 0.29619 * d
-            - 0.000001419 * self.s**2
+            - 0.000001419 * self.silt**2
             + 0.0000821 * om**2
-            + 0.02427 * self.c**-1
-            + 0.01113 * self.s**-1
-            + 0.01472 * np.log(self.s)
-            - 0.0000733 * om * self.c
-            - 0.000619 * d * self.c
+            + 0.02427 * self.clay**-1
+            + 0.01113 * self.silt**-1
+            + 0.01472 * np.log(self.silt)
+            - 0.0000733 * om * self.clay
+            - 0.000619 * d * self.clay
             - 0.001183 * d * om
-            - 0.0001664 * topsoil * self.s
+            - 0.0001664 * topsoil * self.silt
         )
         alpha_ = (
             -14.96
-            + 0.03135 * self.c
-            + 0.0351 * self.s
+            + 0.03135 * self.clay
+            + 0.0351 * self.silt
             + 0.646 * om
             + 15.29 * d
             - 0.192 * topsoil
             - 4.671 * d**2
-            - 0.000781 * self.c**2
+            - 0.000781 * self.clay**2
             - 0.00687 * om**2
             + 0.0449 * om**-1
-            + 0.0663 * np.log(self.s)
+            + 0.0663 * np.log(self.silt)
             + 0.1482 * np.log(om)
-            - 0.04546 * d * self.s
+            - 0.04546 * d * self.silt
             - 0.4852 * d * om
-            + 0.00673 * topsoil * self.c
+            + 0.00673 * topsoil * self.clay
         )
         n_ = (
             -25.23
-            - 0.02195 * self.c
-            + 0.0074 * self.s
+            - 0.02195 * self.clay
+            + 0.0074 * self.silt
             - 0.1940 * om
             + 45.5 * d
             - 7.24 * d**2
-            - 0.0003658 * self.c**2
+            - 0.0003658 * self.clay**2
             + 0.002885 * om**2
             - 12.81 * d**-1
-            - 0.1524 * self.s**-1
+            - 0.1524 * self.silt**-1
             - 0.01958 * om**-1
-            - 0.2876 * np.log(self.s)
+            - 0.2876 * np.log(self.silt)
             - 0.0709 * np.log(om)
             - 44.6 * np.log(d)
-            - 0.02264 * d * self.c
+            - 0.02264 * d * self.clay
             + 0.0896 * d * om
-            + 0.00718 * topsoil * self.c
+            + 0.00718 * topsoil * self.clay
         )
         l_ = (
             0.0202
-            + 0.0006193 * self.c**2
+            + 0.0006193 * self.clay**2
             - 0.001136 * om**2
             - 0.2316 * np.log(om)
-            - 0.03544 * d * self.c
-            + 0.00283 * d * self.s
+            - 0.03544 * d * self.clay
+            + 0.00283 * d * self.silt
             + 0.0488 * d * om
         )
         ks_ = (
             7.755
-            + 0.0352 * self.s
+            + 0.0352 * self.silt
             + 0.93 * topsoil
             - 0.967 * d**2
-            - 0.000484 * self.c**2
-            - 0.000322 * self.s**2
-            + 0.001 * self.s**-1
+            - 0.000484 * self.clay**2
+            - 0.000322 * self.silt**2
+            + 0.001 * self.silt**-1
             - 0.0748 * om**-1
-            - 0.643 * np.log(self.s)
-            - 0.01398 * d * self.c
+            - 0.643 * np.log(self.silt)
+            - 0.01398 * d * self.clay
             - 0.1673 * d * om
-            + 0.02986 * topsoil * self.c
-            - 0.03305 * topsoil * self.s
+            + 0.02986 * topsoil * self.clay
+            - 0.03305 * topsoil * self.silt
         )
         theta_r = 0.01
         return theta_r, theta_s, np.exp(ks_), np.exp(alpha_), np.exp(n_), np.exp(l_)
@@ -162,12 +162,12 @@ class ptf:
         k10 = 0.600
         k11 = 0.640
         k12 = 1.260
-        c = self.c / 100
-        sp = self.sp / 100
-        b = k01 + k02 * c - k03 * sp
-        theta_s = k04 - k05 * c - k06 * sp
-        psi_s = 0.01 * 10 ** (k07 - k08 * c - k09 * sp)
-        ks = 10 ** (-k10 - k11 * c + k12 * sp) * 25.2 / 3600
+        c = self.clay / 100
+        s = self.sand / 100
+        b = k01 + k02 * c - k03 * s
+        theta_s = k04 - k05 * c - k06 * s
+        psi_s = 0.01 * 10 ** (k07 - k08 * c - k09 * s)
+        ks = 10 ** (-k10 - k11 * c + k12 * s) * 25.2 / 3600
         theta_r = 0.0
         labda = 1 / b
         ks = ks * 8640000 / 1000  # kg/m2/s to cm/d
