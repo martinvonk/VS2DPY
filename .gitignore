@@ -6,3 +6,4 @@
 #folders
 /src/vs2dpy.egg-info
 /dist
+/doc/notebooks/seepage_test
