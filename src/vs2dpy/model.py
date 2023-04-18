@@ -1,15 +1,15 @@
-#%%
-import os
+from pathlib import Path
 import numpy as np
 from collections import OrderedDict
 from subprocess import PIPE, STDOUT, Popen
+from typing import Union
 from .read import var_out, bal_out
 
 
 class Model:
     def __init__(
         self,
-        ws: str,
+        ws: Union[str, Path],
         exe: str = "vs2drt",
         titl: str = "Model created with VS2DPY",
         tmax: float = 1.0,
@@ -41,9 +41,10 @@ class Model:
 
         """
 
-        if not os.path.exists(ws):
-            os.mkdir(ws)
-            print(f"Directory {ws} created")
+        workspace_path = Path(ws)
+        if not workspace_path.exists():
+            workspace_path.mkdir()
+            print(f"Directory {workspace_path} created")
 
         self.ws = ws
 
@@ -156,16 +157,16 @@ class Model:
         hpnt: bool = False,
         vpnt: bool = False,
         nplt: int = 1,
-        pltim: np.ndarray = None,
+        pltim: Union[np.ndarray, None] = None,
         nobs: int = 0,
-        obsrowncoln: list[tuple] = None,
+        obsrowncoln: Union[list[tuple], None] = None,
         nmb9: int = -33,
-        mb9: np.ndarray = None,
+        mb9: Union[np.ndarray, None] = None,
         numbf: int = 0,
         maxcells: int = 0,
         idbf: int = 0,
         numcells: int = 0,
-        bcrowncoln: list[tuple] = None,
+        bcrowncoln: Union[list[tuple], None] = None,
         prnt: bool = False,
     ):
         """Define which output is provided
@@ -316,8 +317,8 @@ class Model:
         self,
         nxr: int = 1,
         nly: int = 1,
-        dxr: np.ndarray = None,
-        delz: np.ndarray = None,
+        dxr: Union[np.ndarray, None] = None,
+        delz: Union[np.ndarray, None] = None,
     ):
         """Define domain and grid spacing
 
@@ -413,7 +414,7 @@ class Model:
         self.itstop = itstop  # A-6
         self.eps = eps  # B-1
         if 1.2 <= hmax <= 0.4:
-            print(f"Relaxation parameter outside of general range")
+            print("Relaxation parameter outside of general range")
         self.hmax = hmax  # B-1
         self.wus = wus  # B-1
         self.minit = minit  # B-4
@@ -432,7 +433,7 @@ class Model:
         nprop: int = 6,
         hft: int = 1,
         textures: dict = {1: np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])},
-        jtex: np.ndarray = None,
+        jtex: Union[np.ndarray, None] = None,
     ):
         """Define soil attributes
 
@@ -529,8 +530,8 @@ class Model:
         phrd: bool = True,
         iread: int = 0,
         factor: float = 1.0,
-        dwtx: float = None,
-        hmin: float = None,
+        dwtx: Union[float, None] = None,
+        hmin: Union[float, None] = None,
     ):
         """Define initial conditions
 
@@ -582,16 +583,16 @@ class Model:
         self,
         bcit: bool = False,
         etsim: bool = False,
-        npv: int = None,
-        etcyc: float = None,
-        peval: np.ndarray = None,
-        rdc1: np.ndarray = None,
-        rdc2: np.ndarray = None,
-        ptval: np.ndarray = None,
-        rdc3: np.ndarray = None,  # RD
-        rdc4: np.ndarray = None,  # RAbase
-        rdc5: np.ndarray = None,  # RAtop
-        rdc6: np.ndarray = None,  # Hroot
+        npv: Union[int, None] = None,
+        etcyc: Union[float, None] = None,
+        peval: Union[np.ndarray, None] = None,
+        rdc1: Union[np.ndarray, None] = None,
+        rdc2: Union[np.ndarray, None] = None,
+        ptval: Union[np.ndarray, None] = None,
+        rdc3: Union[np.ndarray, None] = None,  # RD
+        rdc4: Union[np.ndarray, None] = None,  # RAbase
+        rdc5: Union[np.ndarray, None] = None,  # RAtop
+        rdc6: Union[np.ndarray, None] = None,  # Hroot
     ):
         """Define evaporation attributes
 
@@ -691,7 +692,7 @@ class Model:
         # jlast: int = 0,
         # jspx: list[tuple] = None,
         ibc: int = 0,
-        ntx: np.ndarray = None,
+        ntx: Union[np.ndarray, None] = None,
     ):
         """Create boundary condtition dictionary for a recharge period
 
@@ -790,7 +791,7 @@ class Model:
     def define_rp(
         self,
         tper: np.ndarray = np.array([1.0]),
-        bc: dict[dict] = None,
+        bc: Union[dict[dict], None] = None,
     ):
         """Define recharge period
 
@@ -871,9 +872,9 @@ class Model:
             for x in (self.thpt, self.spnt, self.ppnt, self.hpnt, self.vpnt)
         ]
         A["A13"] = " ".join(A_13) + " /A-13 -- THPT, SPNT, PPNT, HPNT, VPNT\n"
-        A["A14"] = f"0 1 /A-14 -- IFAC, FACX. A-15 begins next line: DXR\n"
+        A["A14"] = "0 1 /A-14 -- IFAC, FACX. A-15 begins next line: DXR\n"
         A["A15"] = f"{' '.join(self.dxr.astype(str))} \n"
-        A["A17"] = f"0 1 /A-17 -- JFAC, FACZ. A-18 begins next line: DELZ\n"
+        A["A17"] = "0 1 /A-17 -- JFAC, FACZ. A-18 begins next line: DELZ\n"
         A["A18"] = f"{' '.join(self.delz.astype(str))} /End A-18\n"
         if self.f8p:
             A["A20"] = f"{self.nplt} /A-20 -- NPLT. A-21 begins next line: PLTIM\n"
@@ -906,7 +907,7 @@ class Model:
         for ky in self.textures:
             B["B08"] += f"{ky} /B-8 -- ITEX. B-9 to begin next line: HK\n"
             B["B08"] += f"{' '.join(self.textures[ky].astype(str))}\n"
-        B["B12"] = f"0 /B-12 -- IROW. B-13 begins next line: JTEX\n"
+        B["B12"] = "0 /B-12 -- IROW. B-13 begins next line: JTEX\n"
         B["B13"] = ""
         for i, row in enumerate(self.jtex.astype(str)):
             if i == len(self.jtex) - 1:
@@ -986,7 +987,7 @@ class Model:
             C[
                 f"{ky:{fs}}_C19"
             ] = f"-999999 /C-19 -- End of data for recharge period {ky}\n"
-        C[f"{ky:{fs}}_C99"] = f"-999999 /End of input data file"
+        C[f"{ky:{fs}}_C99"] = "-999999 /End of input data file"
         return C
 
     def write_fil(self, ignore_settings=True) -> list:
